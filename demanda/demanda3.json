@@ -1,0 +1,177 @@
+[
+    {
+        "hora": "00:00 a 01:00",
+        "valorDemanda": "1931",
+        "valorGeneracion": "1847",
+        "valorEnlace": null,
+        "valorPronostico": "1955"
+    },
+    {
+        "hora": "1:00 - 2:00",
+        "valorDemanda": "1720",
+        "valorGeneracion": "1673",
+        "valorEnlace": null,
+        "valorPronostico": "1844"
+    },
+    {
+        "hora": "2",
+        "valorDemanda": "1619",
+        "valorGeneracion": "1623",
+        "valorEnlace": null,
+        "valorPronostico": "1718"
+    },
+    {
+        "hora": "3",
+        "valorDemanda": "1548",
+        "valorGeneracion": "1544",
+        "valorEnlace": null,
+        "valorPronostico": "1657"
+    },
+    {
+        "hora": "4",
+        "valorDemanda": "1501",
+        "valorGeneracion": "1500",
+        "valorEnlace": null,
+        "valorPronostico": "1583"
+    },
+    {
+        "hora": "5",
+        "valorDemanda": "1476",
+        "valorGeneracion": "1476",
+        "valorEnlace": null,
+        "valorPronostico": "1529"
+    },
+    {
+        "hora": "6",
+        "valorDemanda": "1479",
+        "valorGeneracion": "1481",
+        "valorEnlace": null,
+        "valorPronostico": "1492"
+    },
+    {
+        "hora": "7",
+        "valorDemanda": "1510",
+        "valorGeneracion": "1507",
+        "valorEnlace": null,
+        "valorPronostico": "1484"
+    },
+    {
+        "hora": "8",
+        "valorDemanda": "1573",
+        "valorGeneracion": "1563",
+        "valorEnlace": null,
+        "valorPronostico": "1503"
+    },
+    {
+        "hora": "9",
+        "valorDemanda": "1684",
+        "valorGeneracion": "1672",
+        "valorEnlace": null,
+        "valorPronostico": "1559"
+    },
+    {
+        "hora": "10",
+        "valorDemanda": "1747",
+        "valorGeneracion": "1758",
+        "valorEnlace": null,
+        "valorPronostico": "1687"
+    },
+    {
+        "hora": "11",
+        "valorDemanda": "1775",
+        "valorGeneracion": "1763",
+        "valorEnlace": null,
+        "valorPronostico": "1762"
+    },
+    {
+        "hora": "12",
+        "valorDemanda": "1814",
+        "valorGeneracion": "1806",
+        "valorEnlace": null,
+        "valorPronostico": "1804"
+    },
+    {
+        "hora": "13",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "1850"
+    },
+    {
+        "hora": "14",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "1898"
+    },
+    {
+        "hora": "15",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "1934"
+    },
+    {
+        "hora": "16",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "1954"
+    },
+    {
+        "hora": "17",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "2014"
+    },
+    {
+        "hora": "18",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "2043"
+    },
+    {
+        "hora": "19",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "2053"
+    },
+    {
+        "hora": "20",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "2016"
+    },
+    {
+        "hora": "21",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "1962"
+    },
+    {
+        "hora": "22",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "1983"
+    },
+    {
+        "hora": "23",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "2016"
+    },
+    {
+        "hora": "24",
+        "valorDemanda": " ",
+        "valorGeneracion": " ",
+        "valorEnlace": null,
+        "valorPronostico": "1998"
+    }
+]
