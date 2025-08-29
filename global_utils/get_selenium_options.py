@@ -1,6 +1,12 @@
 from selenium.webdriver.chrome.options import Options
 
 def get_selenium_options(headless: bool, download_folder: str) -> Options:
+    """
+    Get Chrome WebDriver options.
+
+    headless: Whether to run Chrome in headless mode.
+    download_folder: The folder to use for downloading files.
+    """
     chrome_options = Options()
     chrome_options.add_argument("--no-sandbox")
 

@@ -1,60 +1,43 @@
 import requests
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
-import os
+# import json
 import logging
 
-def send_telegram_message(bot_token, chat_id, message):
-    """Send a message to a Telegram chat."""
-    try:
-        url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={chat_id}&text={message}"
-        response = requests.get(url)
-        response.raise_for_status()
-        logging.info("Telegram message sent successfully")
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to send Telegram message: {e}")
+## Comment this if you want to run this single file
+from config import ENV
+from global_utils.send_telegram_message import send_telegram_message
+## Uncomment this if you want to run this single file
+# from ..config import ENV
+# from ..global_utils.send_telegram_message import send_telegram_message
+
 
 def get_ngi_data():
     try:
-        # Logging Setup
-        load_dotenv() # take environment variables
+        ngi_email = ENV.NGI_EMAIL
+        ngi_password = ENV.NGI_PASSWORD.get_secret_value()
+        ngi_endpoint = ENV.NGI_ENDPOINT
+        bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+        chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
-        # Load sensitive data from environment variables
-        email = os.getenv("NGI_EMAIL")
-        password = os.getenv("NGI_PASSWORD")
-        endpoint = os.getenv("NGI_ENDPOINT")
-        bot_token = os.getenv("TELEGRAM_BOT_GAS_NOTIFIER_TOKEN")
-        chat_id = os.getenv("TELEGRAM_GROUP_CHAT_ID")
-        # Load non-sensitive data from environment variables
-        endpoint = os.getenv("NGI_ENDPOINT")
-
-        if not email or not password:
-            logging.error("Email or password not set in environment variables")
-            return # Exit the function
-
-        if not endpoint:
-            logging.error("Endpoint not set in environment variables")
-            return # Exit the functio 
-
-        if not bot_token or not chat_id:
-            logging.error("Telegram bot token or chat ID not set in environment variables")
-            return  # Exit the function gracefully
-
-        auth_endpoint = f"{endpoint}/auth"
+        auth_endpoint = f"{ngi_endpoint}auth"
         issue_date = datetime.now().strftime("%Y-%m-%d")
-        datafeed_endpoint = f"{endpoint}/forwardDatafeed.json?issue_date={issue_date}" 
+        datafeed_endpoint = f"{ngi_endpoint}forwardDatafeed.json?issue_date={issue_date}" 
 
         # """ Step 1: Retrieve JWT """
         data = {
-            "email":  email, # subscriber email
-            "password":   password # subscriber password
+            "email":  ngi_email, # subscriber email
+            "password": ngi_password
         }
 
         response = requests.post(auth_endpoint, json=data)
-        response.raise_for_status()  # Raise an exception for HTTP errors
+        if not response.ok:
+            logging.error(f"Failed to authenticate: {response.status_code} - {response.text}")
+            send_telegram_message(bot_token, chat_id, f"Failed to authenticate with NGI API. Status code: {response.status_code}")
+
         key_json = response.json()
         authToken = key_json.get("access_token")
         if not authToken:
+            send_telegram_message(bot_token, chat_id, "Access token not found in NGI authentication response.")
             raise ValueError("Access token not found in response")
 
         # """ Step 2: Pass back JWT in header of query to retrieve data """
