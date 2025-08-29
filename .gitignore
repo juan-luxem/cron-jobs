@@ -1,6 +1,8 @@
 .env
 logs.txt
 credenciales/
+credentials/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
