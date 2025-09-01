@@ -4,6 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import os
 from ngi_api import ngi
+from demanda import demanda
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -31,13 +32,13 @@ if __name__ == "__main__":
     scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=8, minute=0)
 
     # Demanda tiempo real
-    # scheduler.add_job(
-    #     demanda.obtener_demanda,
-    #     "cron",
-    #     day_of_week="*", # every day"
-    #     hour="1-23",
-    #     minute="15,35,55" # 10:05, 10:30, 10:55
-    #    )
+    scheduler.add_job(
+        demanda.get_demanda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="8-23",
+        minute="15,35,55" # 10:05, 10:30, 10:55
+       )
 
     logging.info("process started")
     scheduler.start() 
