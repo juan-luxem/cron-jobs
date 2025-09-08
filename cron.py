@@ -4,7 +4,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import os
 from ngi_api import ngi
-from demanda import demanda
+# from demanda import demanda
+from demanda_real_balance import demanda_real_balance
+from pml import pml
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -26,21 +28,51 @@ if __name__ == "__main__":
         level=logging.INFO,
     )
 
-
     # NGI API
     # Run this script from monday to friday at 8:00 AM
     scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=8, minute=0)
 
     # Demanda tiempo real
+    # Run this script every day from 8:00 AM to 11:55 PM
+    # scheduler.add_job(
+    #     demanda.get_demanda,
+    #     "cron",
+    #     day_of_week="*", # every day"
+    #     hour="9-23",
+    #     minute="15,35,55" #
+    #    )
+
+    # Demanda real balance
+    # Run this script every day at 03:25 PM
     scheduler.add_job(
-        demanda.get_demanda,
+        demanda_real_balance.get_demanda_real_balance,
         "cron",
         day_of_week="*", # every day"
-        hour="8-23",
-        minute="15,35,55" # 10:05, 10:30, 10:55
+        hour="15",
+        minute="25" # 15:25
        )
 
-    logging.info("process started")
+    # PML MDA
+    # Run this script every day at 06:00 AM
+    scheduler.add_job(
+        pml.get_pml_mda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="0" # 06:00
+       )
+
+    # PML MTR
+    # Run this script every day at 06:05 AM
+    scheduler.add_job(
+        pml.get_pml_mtr,
+        "cron",
+        day_of_week="*", # every day"
+        hour="06",
+        minute="5" # 06:05
+       )
+
+    # logging.info("process started")
     scheduler.start() 
 
     signal.signal(signal.SIGTERM, shutdown)
