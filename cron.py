@@ -7,6 +7,7 @@ from ngi_api import ngi
 # from demanda import demanda
 from demanda_real_balance import demanda_real_balance
 from pml import pml
+from servicios_conexos import servicios_conexos
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -70,6 +71,26 @@ if __name__ == "__main__":
         day_of_week="*", # every day"
         hour="06",
         minute="5" # 06:05
+       )
+
+    # Servicios Conexos MDA
+    # Run this script every day at 06:10 AM
+    scheduler.add_job(
+        servicios_conexos.get_servicios_mda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="10" # 06:10
+       )
+
+    # Servicios Conexos MTR
+    # Run this script every day at 06:15 AM
+    scheduler.add_job(
+        servicios_conexos.get_servicios_mtr,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="15" # 06:15
        )
 
     # logging.info("process started")
