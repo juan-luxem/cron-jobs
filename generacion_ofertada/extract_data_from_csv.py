@@ -157,15 +157,8 @@ def extract_data_from_csv(file_path: str) -> List[Dict]:
             'Costo de Arranque Tibio ($)': 'CostoArranqueTibio',
             'Tiempo en paro para Arranque Frio (Horas)': 'TiempoParoArranqueFrio_Horas',
             'Costo de Arranque Frio ($)': 'CostoArranqueFrio',
-            # Alternative column names that might appear
-            # 'Tiempo paro/arranque caliente (Horas)': 'TiempoParoArranqueCaliente_Horas',
-            # 'Costo Arranque Caliente': 'CostoArranqueCaliente',
-            # 'Tiempo paro/arranque tibio (Horas)': 'TiempoParoArranqueTibio_Horas',
-            # 'Costo Arranque Tibio': 'CostoArranqueTibio',
-            # 'Tiempo paro/arranque frio (Horas)': 'TiempoParoArranqueFrio_Horas',
-            # 'Costo Arranque Frio': 'CostoArranqueFrio'
         }
-    #    [ ''] 
+
         # Find the actual column names in the DataFrame
         actual_columns = {}
         for df_col in df.columns:

@@ -11,14 +11,14 @@ import logging
 from extract_data_from_csv import process_all_csv_files, send_data_to_endpoint
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('generacion_ofertada_mda.log'),
-        logging.StreamHandler()
-    ]
-)
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     handlers=[
+#         logging.FileHandler('generacion_ofertada_mda.log'),
+#         logging.StreamHandler()
+#     ]
+# )
 
 def obtener_generacion_ofertada_mda():
     """
@@ -171,10 +171,3 @@ def obtener_generacion_ofertada_mda():
         if 'driver' in locals():
             driver.quit()
         return
-
-
-if __name__ == "__main__":
-    """
-    Main entry point for the script.
-    """
-    obtener_generacion_ofertada_mda()

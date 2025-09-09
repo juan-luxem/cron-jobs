@@ -7,10 +7,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
+from ..global_utils import get_selenium_options
 import logging
 from extract_data_from_csv import process_all_csv_files, send_data_to_endpoint
 
-def obtener_generacion_hidro_ofertada_mda():
+def obtener_generacion_hidro_ofertada_diaria_mda():
     """
     Fetches the requirements for generacion_hidro_ofertada_mda.
     """
@@ -29,13 +30,15 @@ def obtener_generacion_hidro_ofertada_mda():
         os.makedirs(download_folder, exist_ok=True)
 
         # Configure Chrome options for downloading
-        chrome_options = Options()
-        chrome_options.add_experimental_option("prefs", {
-            "download.default_directory": download_folder,
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-            "safebrowsing.enabled": True
-        })
+        # chrome_options = Options()
+        # chrome_options.add_experimental_option("prefs", {
+        #     "download.default_directory": download_folder,
+        #     "download.prompt_for_download": False,
+        #     "download.directory_upgrade": True,
+        #     "safebrowsing.enabled": True
+        # })
+        chrome_options = get_selenium_options(headless=False, download_folder=download_folder)
+
 
         # Initialize WebDriver
         driver = webdriver.Chrome(options=chrome_options)
@@ -102,7 +105,7 @@ def obtener_generacion_hidro_ofertada_mda():
             logging.info(f"Valid records after validation: {len(valid_records)}")
             
             # TODO: Replace with your actual endpoint URL
-            endpoint_url = f"{API_URL}/api/v1/generacion_hidro_ofertada?market=mda"
+            endpoint_url = f"{API_URL}/api/v1/generacion_hidro_ofertada_diaria?market=mda"
 
             # Send data to endpoint
             success = send_data_to_endpoint(valid_records, endpoint_url)
@@ -140,10 +143,3 @@ def obtener_generacion_hidro_ofertada_mda():
         if 'driver' in locals():
             driver.quit()
         return
-
-
-if __name__ == "__main__":
-    """
-    Main entry point for the script.
-    """
-    obtener_generacion_hidro_ofertada_mda()

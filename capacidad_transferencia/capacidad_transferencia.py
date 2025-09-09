@@ -104,3 +104,4 @@ def get_capacidad_transferencia():
             # Wait for the download to complete
             driver.quit()
             logging.info("Driver closed successfully.")
+    

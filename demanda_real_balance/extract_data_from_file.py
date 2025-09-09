@@ -96,8 +96,8 @@ def extract_data_from_file(download_folder: str) -> str:
     # Get files fom the download folder
     files = os.listdir(download_folder)
     print(f"Files found in download folder: {files}")
-    if len(files) == 0:
-        logging.error("No files found in the download folder")
+    if len(files) != 4:
+        logging.error("Expected 4 files in the download folder")
         return
 
     all_transformed_records = [] # To store records from all processed files

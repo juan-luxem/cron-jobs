@@ -1,19 +1,19 @@
 import os
 import logging
+# import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager  # Added
-from selenium.webdriver.chrome.options import Options  # Better import style
 from selenium.webdriver.chrome.service import Service  # Added
 import time
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from selenium.webdriver.common.keys import Keys
 from .extract_data_from_file import extract_data_from_file
 import requests
-from dotenv import load_dotenv
+from config import ENV
+from global_utils.get_selenium_options import get_selenium_options
 
 def get_csv_file_id_from_last_release_date_row(driver, base_date_str, day_to_subtract, release_date) -> str | None:
     """
@@ -56,14 +56,8 @@ def get_csv_file_id_from_last_release_date_row(driver, base_date_str, day_to_sub
 
 
 
-def obtener_demanda_real_balance():
-    load_dotenv()
-    API_URL = os.getenv("API_URL")
-
-    if not API_URL:
-        logging.error("API_URL not found in environment variables.")
-        return None
-
+def get_demanda_real_balance():
+    API_URL = ENV.API_URL
 
     url = "https://www.cenace.gob.mx/Paginas/SIM/Reportes/EstimacionDemandaReal.aspx"
     days_to_download = [0, 42, 98, 203]
@@ -76,27 +70,13 @@ def obtener_demanda_real_balance():
         logging.error("Files not found in download path")
         return
 
-    chrome_options = Options()
-    # chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    # chrome_options.add_argument("--headless=new")  # Use =new for modern Chrome
-    # chrome_options.add_argument("--no-sandbox")
-    # chrome_options.add_argument("--disable-dev-shm-usage")
-    # chrome_options.add_argument("--disable-gpu")  # Often helpful in headless
-    chrome_options.add_argument("--window-size=1280,720")  # Define virtual window size
-    # Download folder
-    prefs = {
-        "download.default_directory": download_folder,
-        "download.prompt_for_download": False,
-        "download.directory_upgrade": True,
-        "safebrowsing.enabled": True,
-    }
-    chrome_options.add_experimental_option("prefs", prefs)
+    chrome_options = get_selenium_options(headless=False, download_folder=download_folder)
     driver = None
 
     try:
         # Initialize the Chrome driver
-        service = Service(ChromeDriverManager().install())  # Use ChromeDriverManager to install the driver
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        # service = Service(ChromeDriverManager().install())  # Use ChromeDriverManager to install the driver
+        driver = webdriver.Chrome(options=chrome_options)
         driver.get(url)
 
         input_element = WebDriverWait(driver, 10).until(
@@ -104,7 +84,6 @@ def obtener_demanda_real_balance():
         )
         
         date = datetime.now().strftime("%d/%m/%Y")  
-        
         input_value = input_element.get_attribute("value")
         for day in days_to_download:
             print(f"Downloading file for {day} days ago")
@@ -118,12 +97,18 @@ def obtener_demanda_real_balance():
             time.sleep(3)  # Wait for the page to load
         
         data_to_send = extract_data_from_file(download_folder)
+        # # create a json file to insert and debugging purposes and create file if not exists
+        # if not os.path.exists('data_to_send.json'):
+        #     with open('data_to_send.json', 'w') as f:
+        #         json.dump(data_to_send, f, indent=4)
+
+
         if data_to_send is None:
             logging.error("No data extracted from the file.")
             return
 
         response = requests.post(
-            f"{API_URL}/api/v1/demanda_real_balance",
+            f"{API_URL}api/v1/demanda-real-balance",
             json=data_to_send,
             headers={"Content-Type": "application/json"}
         )

@@ -1,7 +1,7 @@
 import re
 import logging
 
-def extract_fecha_operacion_from_filename(filename: str) -> str:
+def extract_fecha_operacion_from_filename(filename: str, index: int = 3) -> str:
     """
     Extracts the fecha_operacion from the filename.
     The date is always 2 words after the Sistema (SIN, BCS, BCA).
@@ -27,8 +27,8 @@ def extract_fecha_operacion_from_filename(filename: str) -> str:
             return None
             
         # Date should be 3 positions after Sistema (Sistema + 2 words + date)
-        date_index = sistema_index + 3
-        
+        date_index = sistema_index + index
+
         if date_index < len(words):
             # Extract date and validate format
             date_str = words[date_index]

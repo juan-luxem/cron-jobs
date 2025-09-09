@@ -85,12 +85,3 @@ def get_pml_generic(market_type: str, systems: list = ['SIN', 'BCS', 'BCA']):
     finally:
         logging.info(f"🏁 Download process for {market_type} finished.")
         driver.quit()
-
-# # --- Wrapper Functions ---
-# def get_pml_mda():
-#     """Downloads PML MDA data for all systems."""
-#     return get_pml_generic('MDA')
-
-# def get_pml_mtr():
-#     """Downloads PML MTR data for all systems."""
-#     return get_pml_generic('MTR')

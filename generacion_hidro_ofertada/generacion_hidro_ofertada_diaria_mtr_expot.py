@@ -10,9 +10,9 @@ from selenium.webdriver.chrome.options import Options
 import logging
 from extract_data_from_csv import process_all_csv_files, send_data_to_endpoint
 
-def obtener_generacion_ndso_ofertada_mtr_expost():
+def obtener_generacion_hidro_ofertada_diaria_mtr():
     """
-    Fetches the requirements for generacion_ndso_ofertada_mtr_expost (Ofertas No Despachables MTR ExPost).
+    Fetches the requirements for generacion_hidro_ofertada_mda.
     """
     try:
         # Load environment variables
@@ -48,13 +48,13 @@ def obtener_generacion_ndso_ofertada_mtr_expost():
             
             # Wait for page to load
             time.sleep(3)
-
-            # First, select "Ofertas No Despachables MTR ExPost" from the first dropdown
+            
+            # First, select "Ofertas Hidro MTR" from the first dropdown
             try:
                 report_select_element = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlReporte")))
                 report_select = Select(report_select_element)
-                report_select.select_by_value("380")  # Ofertas No Despachables MTR ExPost
-                logging.info("Selected 'Ofertas No Despachables MTR ExPost' option")
+                report_select.select_by_value("378,379")  # Ofertas Hidro MTR
+                logging.info("Selected 'Ofertas Hidro MTR' option")
 
                 # Wait for postback to complete and page to load
                 time.sleep(5)
@@ -63,33 +63,21 @@ def obtener_generacion_ndso_ofertada_mtr_expost():
                 logging.error(f"Error selecting report type: {e}")
                 return None
             
-            # Systems to iterate through (all three systems available for NDSO)
-            systems = ["SIN", "BCS", "BCA"]
+            # For Ofertas Hidro MDA, only SIN system is available
+            logging.info("Processing SIN system for Ofertas Hidro MDA")
             
-            for system in systems:
-                logging.info(f"Processing system: {system}")
+            try:
+                # Click on the CSV download button (no need to select system as only SIN is available)
+                csv_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@src='../imagenes/csv.svg']")))
+                csv_button.click()
+                logging.info("Clicked CSV download button for SIN system")
                 
-                try:
-                    # Find and select the system in the second dropdown
-                    system_select_element = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlSistema")))
-                    system_select = Select(system_select_element)
-                    system_select.select_by_value(system)
-                    logging.info(f"Selected {system} option")
-                    
-                    # Wait for postback to complete
-                    time.sleep(3)
-                    
-                    # Click on the CSV download button
-                    csv_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@src='../imagenes/csv.svg']")))
-                    csv_button.click()
-                    logging.info(f"Clicked CSV download button for {system}")
-                    
-                    # Wait for download to complete
-                    time.sleep(4)
-                    
-                except Exception as e:
-                    logging.error(f"Error processing system {system}: {e}")
-                    continue
+                # Wait for download to complete
+                time.sleep(4)
+                
+            except Exception as e:
+                logging.error(f"Error downloading CSV for SIN system: {e}")
+                return None
             
             logging.info("All CSV downloads completed successfully")
 
@@ -98,11 +86,10 @@ def obtener_generacion_ndso_ofertada_mtr_expost():
             if not extracted_data or len(extracted_data) == 0:
                 logging.error("No data was extracted from CSV files")
                 return
+            
+            # Validate data structure for Ofertas Hidro MDA
+            required_fields = ['DiaOperacion', 'Sistema', 'Codigo', 'CostoOportunidad_MWh', 'GrupoUnidadesEmbalse']
 
-            # Validate data structure for Ofertas No Despachables MTR ExPost
-            required_fields = [
-                'DiaOperacion', 'Sistema', 'Codigo', 'HoraOperacion', 'PotenciaMedia_MW'
-            ]
             
             valid_records = []
             for record in extracted_data:
@@ -112,9 +99,10 @@ def obtener_generacion_ndso_ofertada_mtr_expost():
                     logging.warning(f"Invalid record found: {record}")
             
             logging.info(f"Valid records after validation: {len(valid_records)}")
+            logging.info(f"Valid records after validation: {len(valid_records)}")
             
             # TODO: Replace with your actual endpoint URL
-            endpoint_url = f"{API_URL}/api/v1/generacion_ndso_ofertada?market=mtr"
+            endpoint_url = f"{API_URL}/api/v1/generacion_hidro_ofertada_diaria?market=mtr"
 
             # Send data to endpoint
             success = send_data_to_endpoint(valid_records, endpoint_url)
@@ -152,11 +140,3 @@ def obtener_generacion_ndso_ofertada_mtr_expost():
         if 'driver' in locals():
             driver.quit()
         return
-
-
-if __name__ == "__main__":
-    """
-    Main entry point for the script.
-    """
-    obtener_generacion_ndso_ofertada_mtr_expost()
-

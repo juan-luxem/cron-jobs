@@ -8,6 +8,7 @@ from ngi_api import ngi
 from demanda_real_balance import demanda_real_balance
 from pml import pml
 from servicios_conexos import servicios_conexos
+from generacion_gi_ofertada import generacion_gi_ofertada
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -92,6 +93,25 @@ if __name__ == "__main__":
         hour="6",
         minute="15" # 06:15
        )
+    
+    # Ofertas del GI - Programa de Generación MDA
+    # Run this script every day at 06:20 AM
+    scheduler.add_job(
+        generacion_gi_ofertada.get_generacion_gi_ofertada_mda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="20" # 06:20
+    )
+    # Ofertas del GI - Programa de Generación MTR
+    # Run this script every day at 06:25 AM
+    scheduler.add_job(
+        generacion_gi_ofertada.get_generacion_gi_ofertada_mtr,
+        "cron",
+        day_of_week="*", # every day"
+        hour="10",
+        minute="5" # 06:25
+    )
 
     # logging.info("process started")
     scheduler.start() 

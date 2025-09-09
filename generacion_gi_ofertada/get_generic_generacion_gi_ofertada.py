@@ -1,6 +1,6 @@
-import os
-import time
 import logging
+import time
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
@@ -8,16 +8,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from global_utils.get_selenium_options import get_selenium_options
 
-# --- Logger Setup ---
-# This sets up a simple logger to print info and error messages to the console.
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-
-def get_servicios_conexos_generic(market_type: str, systems: list = ['SIN', 'BCS', 'BCA']):
+def get_generacion_gi_ofertada_generic(market_type: str, systems: list = ['SIN', 'BCS', 'BCA']):
     """
-    Generic function to download Servicios Conexos data from CENACE for any market type.
+    Generic function to download PML data from CENACE for any market type.
 
     Args:
         market_type (str): 'MDA' or 'MTR' to determine which URL to use.
@@ -25,8 +18,8 @@ def get_servicios_conexos_generic(market_type: str, systems: list = ['SIN', 'BCS
     """
     # --- Configuration ---
     urls = {
-        "MDA": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMDA.aspx",
-        "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMTR.aspx"
+        "MDA": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/OfertasMDA.aspx",
+        "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/OfertasMTR.aspx"
     }
     
     if market_type not in urls:
@@ -50,14 +43,15 @@ def get_servicios_conexos_generic(market_type: str, systems: list = ['SIN', 'BCS
 
     try:
         driver.get(url)
-        # First, select "Servicios conexos" from the first dropdown
+
+        # First, select "Ofertas del GI - Programa de Generación" from the first dropdown
         try:
             report_select_element = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlReporte")))
             report_select = Select(report_select_element)
             if market_type == "MDA":
-                report_select.select_by_value("361,324") # Precios de Servicios Conexos MDA
+                report_select.select_by_value("374") # Ofertas del GI – Programa de Generación
             else:
-                report_select.select_by_value("364,327")  # Precios de Servicios Conexos MTR
+                report_select.select_by_value("382")  # Ofertas del GI – Programa de Generación
             logging.info("Selected 'Ofertas del GI - Programa de Generación' option")
             
             # Wait for postback to complete and page to load
