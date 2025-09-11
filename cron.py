@@ -11,6 +11,8 @@ from servicios_conexos import servicios_conexos
 from generacion_gi_ofertada import generacion_gi_ofertada
 from generacion_ndso_ofertada import generacion_ndso_ofertada
 from generacion_idr_ofertada import generacion_idr_ofertada
+from generacion_hidro_ofertada import generacion_hidro_ofertada
+
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -153,6 +155,25 @@ if __name__ == "__main__":
         day_of_week="*", # every day"
         hour="6",
         minute="45" # 06:45
+    )
+    # Ofertas de Venta – Hidroeléctricas MDA
+    # Run this script every day at 06:50 AM
+    scheduler.add_job(
+        generacion_hidro_ofertada.get_generacion_hidro_ofertada_mda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="50" # 06:50
+    )
+
+    # Ofertas de Venta – Hidroeléctricas MTR
+    # Run this script every day at 06:55 AM
+    scheduler.add_job(
+        generacion_hidro_ofertada.get_generacion_hidro_ofertada_mtr,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="52" # 06:55
     )
 
     # logging.info("process started")
