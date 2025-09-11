@@ -113,6 +113,8 @@ if __name__ == "__main__":
         minute="5" # 06:25
     )
 
+    # Ofertas de Venta – No Despachable
+
     # logging.info("process started")
     scheduler.start() 
 
