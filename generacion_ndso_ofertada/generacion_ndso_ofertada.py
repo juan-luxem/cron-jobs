@@ -5,7 +5,6 @@ def get_generacion_ndso_ofertada_mda():
     get_generacion_ndso_ofertada_generic('MDA')
     process_generacion_ndso_ofertada('MDA')
 
-
 def get_generacion_ndso_ofertada_mtr():
     get_generacion_ndso_ofertada_generic('MTR')
     process_generacion_ndso_ofertada('MTR')

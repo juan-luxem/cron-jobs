@@ -3,13 +3,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
 load_dotenv()
-
 class Settings(BaseSettings):
     """
     Defines and validates application environment variables.
     """
     model_config = SettingsConfigDict(
-        env_file='.env', 
+        env_file='.env',
         env_file_encoding='utf-8',
         extra='ignore' # Ignores extra variables in the .env file
     )
@@ -23,7 +22,7 @@ class Settings(BaseSettings):
     # Telegram Bot Tokens and IDs
     TELEGRAM_BOT_GAS_NOTIFIER_TOKEN: SecretStr = Field(..., min_length=11)
     TELEGRAM_BOT_MERCADOS_LUX_TOKEN: SecretStr = Field(..., min_length=11)
-    
+
     TELEGRAM_GROUP_CHAT_ID: str = Field(..., min_length=5)
     TELEGRAM_CHAT_ID: str = Field(..., min_length=5)
 
