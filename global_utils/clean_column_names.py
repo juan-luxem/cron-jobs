@@ -1,7 +1,7 @@
-# from pandas import Index
+from pandas import Index
 from typing import List
 
-def clean_column_names(columns: List[str]) -> List[str]:
+def clean_column_names(columns: Index) -> List[str]:
     """
     Cleans column names by removing quotes and extra spaces.
     """

@@ -1,319 +1,249 @@
 import os
-import re
 import logging
-import requests
-from datetime import datetime
-from typing import List, Dict
-from pandas import DataFrame, to_datetime
 import pandas as pd
+from typing import Dict, List
+from global_utils import (send_data_in_chunks, find_header_row, clean_column_names, extract_fecha_operacion_from_filename, extract_sistema_from_filename)
+from io import StringIO
 
-def extract_system_from_filename(filename: str) -> str | None:
-    """
-    Extract the system (BCS, BCA, or SIN) from the filename.
-    
-    Args:
-        filename (str): The filename to extract system from
-        
-    Returns:
-        str | None: The system name (BCS, BCA, or SIN) or None if not found
-        
-    Example:
-        filename = "OfeVtaRIntermHor SIN MTR_Expost Hor 2025-05-09 v2025 07 08_01 20 01"
-        returns: "SIN"
-    """
-    try:
-        # Remove file extension if present
-        filename_no_ext = os.path.splitext(filename)[0]
-        
-        # Look for system patterns in the filename
-        # Pattern 1: After "OfeVtaRIntermHor" (most specific pattern for your files)
-        match = re.search(r'OfeVtaRIntermHor\s+(BCS|BCA|SIN)\s+', filename_no_ext, re.IGNORECASE)
-        if match:
-            return match.group(1).upper()
-        
-        # Pattern 2: After "OfertasIDR" or similar patterns
-        match = re.search(r'(Ofe.*IDR|OfertasIDR|IDR)\s+(BCS|BCA|SIN)\s+', filename_no_ext, re.IGNORECASE)
-        if match:
-            return match.group(2).upper()
-        
-        # Pattern 3: Look for "Intermitentes" pattern
-        match = re.search(r'Intermitentes.*\s+(BCS|BCA|SIN)\s+', filename_no_ext, re.IGNORECASE)
-        if match:
-            return match.group(1).upper()
-        
-        # Pattern 4: Just look for the systems anywhere in the filename
-        systems = ['BCS', 'BCA', 'SIN']
-        for system in systems:
-            if re.search(rf'\b{system}\b', filename_no_ext, re.IGNORECASE):
-                return system.upper()
-        
-        logging.warning(f"Could not extract system from filename: {filename}")
-        return None
-        
-    except Exception as e:
-        logging.error(f"Error extracting system from filename {filename}: {e}")
-        return None
+logging.basicConfig(level=logging.INFO)
 
-def find_data_header_row(df: DataFrame) -> int:
+def rename_columns_to_target_structure(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Finds the row index where the data headers are present for IDR offers.
+    Renames columns to match the target structure for Servicios Conexos data.
     """
-    header_row_idx = None
-    for idx, row in df.iterrows():
-        if idx > 15:  # Limit to first 15 rows to avoid long processing
-            break
-        
-        # Convert row to string and check for IDR-specific columns
-        row_str = str(row.values[0]).replace('"', '').lower()
-        
-        # Look for IDR-specific column patterns
-        if ('codigo' in row_str and 
-            ('estatus' in row_str or 'asignacion' in row_str) and
-            ('hora' in row_str) and
-            ('pronostico' in row_str or 'pronóstico' in row_str)):
-            header_row_idx = idx + 1
-            return header_row_idx
-            
-    return header_row_idx if header_row_idx is not None else -1
-
-def get_dates_in_file(df: DataFrame) -> str | None:
-    """
-    Extract the operation date from the CSV file.
-    """
-    date = None
-
+    # Create a mapping dictionary for column renaming
+    column_mapping = {}
     for col in df.columns:
-        for cell in df[col].astype(str):
-            # Extract Fecha or Dia pattern
-            match_date = re.search(r'(Fecha|Dia):\s*(\d{2}/[a-z]{3}/\d{4})', cell, re.IGNORECASE)
-            if match_date and not date:
-                date = match_date.group(2)
-            
-            # Alternative pattern: look for date in format DD/MMM/YYYY
-            if not date:
-                match_date = re.search(r'\b(\d{2}/[a-z]{3}/\d{4})\b', cell, re.IGNORECASE)
-                if match_date:
-                    date = match_date.group(1)
-                    
-        if date:
-            break
-            
-    if date:
-        # Map Spanish month abbreviations to English
-        month_map = {
-            'ene': 'Jan', 'feb': 'Feb', 'mar': 'Mar', 'abr': 'Apr', 'may': 'May', 'jun': 'Jun',
-            'jul': 'Jul', 'ago': 'Aug', 'sep': 'Sep', 'oct': 'Oct', 'nov': 'Nov', 'dic': 'Dec'
-        }
-        for es, en in month_map.items():
-            if f"/{es}/" in date:
-                date = date.replace(f"/{es}/", f"/{en}/")
-                break
-        try:
-            formatted_date = to_datetime(date, format='%d/%b/%Y').strftime('%Y-%m-%d')
-            return formatted_date
-        except:
-            logging.warning(f"Could not parse date: {date}")
-            return None
-    else:
-        logging.warning("No date found in the file.")
-        return None
+        clean_col = str(col).strip().replace('"', '').strip()
+        if 'Codigo' in clean_col:
+            column_mapping[col] = 'Codigo'
+        elif 'Estatus asignacion' in clean_col:
+            column_mapping[col] = 'EstatusAsignacion'
+        elif 'Hora' in clean_col:
+            column_mapping[col] = 'HoraOperacion'
+        elif 'Pronostico en MW' in clean_col:
+            column_mapping[col] = 'PotenciaMedia_MW'
+        elif '(%) Pronostico de Generacion Bloque 01' in clean_col:
+            column_mapping[col] = 'PorcentajePronosticoGeneracionBloque01'
+        elif 'Costo de Generacion Bloque 01 ($/MWh)' in clean_col:
+            column_mapping[col] = 'CostoGeneracionBloque01_MWh'
+        elif '(%) Pronostico de Generacion Bloque 02' in clean_col:
+            column_mapping[col] = 'PorcentajePronosticoGeneracionBloque02'
+        elif 'Costo de Generacion Bloque 02 ($/MWh)' in clean_col:
+            column_mapping[col] = 'CostoGeneracionBloque02_MWh'
+        elif '(%) Pronostico de Generacion Bloque 03' in clean_col:
+            column_mapping[col] = 'PorcentajePronosticoGeneracionBloque03'
+        elif 'Costo de Generacion Bloque 03 ($/MWh)' in clean_col:
+            column_mapping[col] = 'CostoGeneracionBloque03_MWh'
 
-def extract_data_from_csv(file_path: str) -> List[Dict]:
+    df_renamed = df.rename(columns=column_mapping)
+    return df_renamed
+
+def process_csv_file(file_path: str) -> List[Dict]:
     """
-    Extract data from CSV file for IDR (Intermittent Dispatchable Resources) generation offers.
+    Processes a single Servicios Conexos CSV file and returns a list of dictionaries with the target structure.
     """
-    try:
-        # Read CSV with pandas
-        df = pd.read_csv(file_path, encoding='utf-8', sep=';')
+    filename = os.path.basename(file_path)
 
-        # Extract operation date
-        dia_operacion = get_dates_in_file(df)
-        if not dia_operacion:
-            logging.error(f"Could not extract date from {file_path}")
-            return []
+    # Extract Sistema and FechaOperacion from filename
+    sistema = extract_sistema_from_filename(filename)
+    fecha_operacion = extract_fecha_operacion_from_filename(filename)
 
-        # Find the data header row
-        skip_rows_index = find_data_header_row(df)
-        if skip_rows_index is None or skip_rows_index < 0:
-            logging.info("No data header row found in the file.")
-            return []
-    
-        if skip_rows_index == 0:
-            logging.error("Error: skip_rows_index is 0, header row index would be invalid.")
-            return []
-
-        # Extract the system from the filename
-        system = extract_system_from_filename(os.path.basename(file_path))
-        if not system:
-            logging.error(f"Could not extract system from filename: {file_path}")
-            return []
-
-        print(f"Extracted operation date: {dia_operacion}")
-        print(f"Skip rows index: {skip_rows_index}")
-        print(f"Extracted system: {system}")
-        # Extract data from the DataFrame
-        df = pd.read_csv(file_path, encoding='utf-8', sep=',', skiprows=skip_rows_index)
-        df.columns = df.columns.str.strip()
-
-        # Define column mapping for IDR generation offers
-        column_mapping = {
-            'Codigo': 'Codigo',
-            'Estatus asignacion': 'EstatusAsignacion',
-            'Hora': 'HoraOperacion',
-            'Pronostico en MW': 'Pronostico_MW',
-            '(%) Pronostico de Generacion Bloque 01': 'PorcentajePronosticoGeneracionBloque01',
-            'Costo de Generacion Bloque 01 ($/MWh)': 'CostoGeneracionBloque01_MWh',
-            '(%) Pronostico de Generacion Bloque 02': 'PorcentajePronosticoGeneracionBloque02',
-            'Costo de Generacion Bloque 02 ($/MWh)': 'CostoGeneracionBloque02_MWh',
-            '(%) Pronostico de Generacion Bloque 03': 'PorcentajePronosticoGeneracionBloque03',
-            'Costo de Generacion Bloque 03 ($/MWh)': 'CostoGeneracionBloque03_MWh'
-        }
-    #    [  '', '', '', '', '', 'Costo de Generacion Bloque 03 ($/MWh)'] 
-        # Alternative column names to check
-        alt_column_mapping = {
-            'Estatus Asignacion': 'EstatusAsignacion',
-            'Pronóstico (MW)': 'Pronostico_MW',
-            'Pronóstico MW': 'Pronostico_MW',
-            'Porcentaje Pronóstico Generación Bloque 01': 'PorcentajePronosticoGeneracionBloque01',
-            'Porcentaje Pronóstico Generación Bloque 02': 'PorcentajePronosticoGeneracionBloque02',
-            'Porcentaje Pronóstico Generación Bloque 03': 'PorcentajePronosticoGeneracionBloque03',
-            'Costo Generación Bloque 01 ($/MWh)': 'CostoGeneracionBloque01_MWh',
-            'Costo Generación Bloque 02 ($/MWh)': 'CostoGeneracionBloque02_MWh',
-            'Costo Generación Bloque 03 ($/MWh)': 'CostoGeneracionBloque03_MWh'
-        }
-        
-        # Check which columns exist and use appropriate mapping
-        final_mapping = {}
-        for original_col in df.columns:
-            if original_col in column_mapping:
-                final_mapping[original_col] = column_mapping[original_col]
-            elif original_col in alt_column_mapping:
-                final_mapping[original_col] = alt_column_mapping[original_col]
-        
-        # Check if all required columns exist
-        required_mapped_cols = [
-            'Codigo', 'EstatusAsignacion', 'HoraOperacion', 'Pronostico_MW',
-            'PorcentajePronosticoGeneracionBloque01', 'CostoGeneracionBloque01_MWh',
-            'PorcentajePronosticoGeneracionBloque02', 'CostoGeneracionBloque02_MWh',
-            'PorcentajePronosticoGeneracionBloque03', 'CostoGeneracionBloque03_MWh'
-        ]
-        
-        missing_columns = []
-        for req_col in required_mapped_cols:
-            if req_col not in final_mapping.values():
-                missing_columns.append(req_col)
-        
-        if missing_columns:
-            logging.error(f"Missing required columns in {file_path}: {missing_columns}")
-            logging.error(f"Available columns: {list(df.columns)}")
-            return []
-        
-        # Rename columns
-        df = df.rename(columns=final_mapping)
-        
-        data_list = []
-        for _, row in df.iterrows():
-            try:
-                # Skip rows with missing essential data
-                if (pd.isna(row.get('Codigo')) or 
-                    pd.isna(row.get('HoraOperacion')) or 
-                    pd.isna(row.get('Pronostico_MW'))):
-                    continue
-                    
-                record = {
-                    'DiaOperacion': dia_operacion,
-                    'Sistema': system,
-                    'Codigo': str(row['Codigo']).strip(),
-                    'EstatusAsignacion': str(row.get('EstatusAsignacion', '')).strip()[:3],  # Limit to 3 chars as per SQL
-                    'HoraOperacion': int(row['HoraOperacion']),
-                    'Pronostico_MW': float(row['Pronostico_MW']),
-                    'PorcentajePronosticoGeneracionBloque01': float(row.get('PorcentajePronosticoGeneracionBloque01', 0)),
-                    'CostoGeneracionBloque01_MWh': float(row.get('CostoGeneracionBloque01_MWh', 0)),
-                    'PorcentajePronosticoGeneracionBloque02': float(row.get('PorcentajePronosticoGeneracionBloque02', 0)),
-                    'CostoGeneracionBloque02_MWh': float(row.get('CostoGeneracionBloque02_MWh', 0)),
-                    'PorcentajePronosticoGeneracionBloque03': float(row.get('PorcentajePronosticoGeneracionBloque03', 0)),
-                    'CostoGeneracionBloque03_MWh': float(row.get('CostoGeneracionBloque03_MWh', 0)),
-                    'Fecha_Creacion': datetime.now().isoformat(sep=' '),
-                    'Fecha_Actualizacion': datetime.now().isoformat(sep=' ')
-                }
-                data_list.append(record)
-            except (ValueError, TypeError) as e:
-                logging.warning(f"Error converting row data in {file_path}: {e}")
-                continue
-        
-        logging.info(f"Extracted {len(data_list)} records from {file_path}")
-        return data_list
-        
-    except Exception as e:
-        logging.error(f"Error processing CSV file {file_path}: {e}")
+    if not sistema:
+        logging.error(f"Could not extract Sistema from filename: {filename}")
         return []
 
-def process_all_csv_files(download_folder: str) -> List[Dict]:
+    if not fecha_operacion:
+        logging.error(f"Could not extract FechaOperacion from filename: {filename}")
+        return []
+
+    logging.info(f"Processing file: {filename}")
+    logging.info(f"Sistema: {sistema}")
+    logging.info(f"FechaOperacion: {fecha_operacion}")
+
+    # Read CSV file with error handling for mixed column counts
+    try:
+        # First, read the file line by line to handle mixed structures
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        try:
+            with open(file_path, 'r', encoding='latin-1') as f:
+                content = f.read()
+        except Exception as e:
+            logging.error(f"Error reading file {filename}: {e}")
+            return []
+
+    # Split into lines
+    lines = content.split('\n')
+
+    # Create a temporary DataFrame to use find_header_row function
+    temp_df = pd.DataFrame([line.split(',') for line in lines[:25]])  # Only first 25 lines to find header
+
+    # Find the line with the headers for Servicios Conexos
+    header_line_idx = find_header_row(temp_df, "Codigo", "Estatus asignacion")
+    logging.info(f"Header line index: {header_line_idx}")
+
+    if header_line_idx == -1:
+        logging.warning(f"Could not find header line in file: {filename}")
+        return []
+
+    # Create a temporary file with only the data part (headers + data rows)
+    data_lines = lines[header_line_idx:]
+    temp_csv_content = '\n'.join(data_lines)
+
+    # Now read this as a proper CSV
+    try:
+        df = pd.read_csv(StringIO(temp_csv_content), encoding='utf-8')
+    except Exception as e:
+        logging.error(f"Error parsing CSV data from {filename}: {e}")
+        return []
+
+    # Clean column names
+    df.columns = clean_column_names(df.columns)
+
+    # Rename columns to match target structure
+    df = rename_columns_to_target_structure(df)
+
+    # Add Sistema and FechaOperacion to each row
+    df['Sistema'] = sistema
+    df['FechaOperacion'] = fecha_operacion
+
+    # Convert to list of dictionaries
+    result = []
+    for _, row in df.iterrows():
+        # Skip empty rows
+        if pd.isna(row.get('HoraOperacion')) or row.get('HoraOperacion') == '':
+            continue
+
+        try:
+            record = {
+                'FechaOperacion': fecha_operacion,
+                'Codigo': str(row.get('Codigo', '')).strip().replace('"', ''),
+                'HoraOperacion': int(float(str(row.get('HoraOperacion', 0)))),
+                'Sistema': sistema,
+                "EstatusAsignacion": str(row.get('EstatusAsignacion', '')).strip().replace('"', ''),
+                "Pronostico_MW": float(str(row.get('Pronostico_MW', 0)).replace(',', '')),
+                "PorcentajePronosticoGeneracionBloque01": float(str(row.get('PorcentajePronosticoGeneracionBloque01', 0)).replace(',', '')),
+                "CostoGeneracionBloque01_MWh": float(str(row.get('CostoGeneracionBloque01_MWh', 0)).replace(',', '')),
+                "PorcentajePronosticoGeneracionBloque02": float(str(row.get('PorcentajePronosticoGeneracionBloque02', 0)).replace(',', '')),
+                "CostoGeneracionBloque02_MWh": float(str(row.get('CostoGeneracionBloque02_MWh', 0)).replace(',', '')),
+                "PorcentajePronosticoGeneracionBloque03": float(str(row.get('PorcentajePronosticoGeneracionBloque03', 0)).replace(',', '')),
+                "CostoGeneracionBloque03_MWh": float(str(row.get('CostoGeneracionBloque03_MWh', 0)).replace(',', '')),
+            }
+            result.append(record)
+        except (ValueError, TypeError) as e:
+            logging.warning(f"Error processing row in {filename}: {e}")
+            continue
+
+    logging.info(f"Processed {len(result)} records from {filename}")
+    return result
+
+def process_and_send_csv_file(file_path: str, endpoint_url: str) -> bool:
     """
-    Process all CSV files in the download folder and return combined data.
-    For IDR offers, expects 3 CSV files (one for each system: SIN, BCS, BCA).
+    Processes a single CSV file, sends data to API in chunks, and deletes file if successful.
+    Returns True if successful, False otherwise.
+    """
+    filename = os.path.basename(file_path)
+    logging.info(f"\n🔄 Processing file: {filename}")
+
+    # Process the CSV file
+    processed_data = process_csv_file(file_path)
+    logging.info(f"Processed {len(processed_data)} records from {filename}")
+
+    if not processed_data:
+        logging.error(f"❌ No data extracted from {filename}")
+        return False
+
+    # Send data to API in chunks
+    success = send_data_in_chunks(processed_data, endpoint_url, chunk_size=2000)
+
+    if success:
+        try:
+            # Delete the file after successful API call
+            os.remove(file_path)
+            logging.info(f"✅ File {filename} processed and deleted successfully")
+            return True
+        except OSError as e:
+            logging.warning(f"⚠️ Data sent successfully but failed to delete file {filename}: {e}")
+            return True  # Still consider this a success since data was sent
+    else:
+        logging.error(f"❌ Failed to process {filename} - file kept for retry")
+        return False
+
+def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
+    """
+    Processes all CSV files in the download folder, sends to API, and deletes successful files.
+    Validates that exactly 3 CSV files are present (one for each system: SIN, BCS, BCA).
+    Returns a summary of processed vs failed files.
     """
     if not os.path.exists(download_folder):
-        logging.error(f"Download folder does not exist: {download_folder}")
-        return []
-    
+        logging.error(f"❌ Download folder not found: {download_folder}")
+        return {"processed": 0, "failed": 0, "total": 0, "error": "Download folder not found"}
+
+    # Get all CSV files in the download folder
     csv_files = [f for f in os.listdir(download_folder) if f.endswith('.csv')]
-    
-    if not csv_files:
-        logging.warning(f"No CSV files found in {download_folder}")
-        return []
-    
-    logging.info(f"Found {len(csv_files)} CSV files to process")
-    
+
+    # Validate exactly 3 CSV files
     if len(csv_files) != 3:
-        logging.warning(f"Expected 3 CSV files (SIN, BCS, BCA), found {len(csv_files)}. This may cause issues in processing.")
-        return []
-    
-    all_data = []
+        error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
+        logging.error(error_msg)
+        if len(csv_files) == 0:
+            logging.info("ℹ️ No CSV files found in download folder")
+        else:
+            logging.info(f"📁 Found files: {csv_files}")
+        return {"processed": 0, "failed": 0, "total": len(csv_files), "error": error_msg}
+
+    logging.info(f"📁 Found {len(csv_files)} CSV files to process (validation passed)")
+
+    # Verify we have one file for each system
+    found_systems = set()
+    for csv_file in csv_files:
+        sistema = extract_sistema_from_filename(csv_file)
+        if sistema:
+            found_systems.add(sistema)
+
+    expected_systems = {'SIN', 'BCS', 'BCA'}
+    if found_systems != expected_systems:
+        missing_systems = expected_systems - found_systems
+        extra_systems = found_systems - expected_systems
+        error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
+        logging.error(error_msg)
+        return {"processed": 0, "failed": 0, "total": len(csv_files), "error": error_msg}
+
+    logging.info(f"✅ System validation passed: Found files for {found_systems}")
+
+    processed_count = 0
+    failed_count = 0
+
     for csv_file in csv_files:
         file_path = os.path.join(download_folder, csv_file)
-        logging.info(f"Processing file: {csv_file}")
-        
-        file_data = extract_data_from_csv(file_path)
-        if file_data:
-            all_data.extend(file_data)
-            logging.info(f"Added {len(file_data)} records from {csv_file}")
-        else:
-            logging.warning(f"No data extracted from {csv_file}")
-    
-    logging.info(f"Total records extracted: {len(all_data)}")
-    return all_data
 
-def send_data_to_endpoint(data: List[Dict], endpoint_url: str = "") -> bool:
-    """
-    Send the extracted data to a specified endpoint via POST request.
-    """
-    if not endpoint_url:
-        logging.warning("No endpoint URL provided. Skipping POST request.")
-        return False
-    
-    if not data:
-        logging.warning("No data to send.")
-        return False
-    
-    try:
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        
-        response = requests.post(endpoint_url, json=data, headers=headers, timeout=30)
-        
-        if response.status_code == 200 or response.status_code == 201:
-            print(f"Successfully sent {len(data)} records to endpoint")
-            logging.info(f"Successfully sent {len(data)} records to endpoint")
-            return True
+        success = process_and_send_csv_file(file_path, endpoint_url)
+
+        if success:
+            processed_count += 1
         else:
-            logging.error(f"Failed to send data. Status code: {response.status_code}, Response: {response.text}")
-            return False
-            
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error sending POST request: {e}")
-        return False
-    except Exception as e:
-        logging.error(f"Unexpected error sending data: {e}")
-        return False
+            failed_count += 1
+
+    # Check if download folder is empty
+    remaining_files = [f for f in os.listdir(download_folder) if f.endswith('.csv')]
+
+    logging.info(f"\n📊 Processing Summary:")
+    logging.info(f"✅ Successfully processed: {processed_count}")
+    logging.info(f"❌ Failed: {failed_count}")
+    logging.info(f"📂 Remaining CSV files: {len(remaining_files)}")
+
+    if len(remaining_files) == 0:
+        logging.info("🎉 Download folder is now empty!")
+    else:
+        logging.warning(f"⚠️ {len(remaining_files)} files remain in download folder")
+        for file in remaining_files:
+            logging.info(f"   - {file}")
+
+    return {
+        "processed": processed_count,
+        "failed": failed_count,
+        "total": len(csv_files),
+        "remaining": len(remaining_files)
+    }

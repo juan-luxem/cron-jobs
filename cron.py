@@ -10,6 +10,7 @@ from pml import pml
 from servicios_conexos import servicios_conexos
 from generacion_gi_ofertada import generacion_gi_ofertada
 from generacion_ndso_ofertada import generacion_ndso_ofertada
+from generacion_idr_ofertada import generacion_idr_ofertada
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -132,6 +133,26 @@ if __name__ == "__main__":
         day_of_week="*", # every day"
         hour="6",
         minute="35" # 06:35
+    )
+
+    # Ofertas de Venta – Recursos Interm Despachables MDA
+    # Run this script every day at 06:40 AM
+    scheduler.add_job(
+        generacion_idr_ofertada.get_generacion_idr_ofertada_mda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="40" # 06:40
+    )
+
+    # Ofertas de Venta – Recursos Interm Despachables MTR
+    # Run this script every day at 06:45 AM
+    scheduler.add_job(
+        generacion_idr_ofertada.get_generacion_idr_ofertada_mtr,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="45" # 06:45
     )
 
     # logging.info("process started")
