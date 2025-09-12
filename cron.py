@@ -167,13 +167,13 @@ if __name__ == "__main__":
     )
 
     # Ofertas de Venta – Hidroeléctricas MTR
-    # Run this script every day at 06:55 AM
+    # Run this script every day at 06:53 AM
     scheduler.add_job(
         generacion_hidro_ofertada.get_generacion_hidro_ofertada_mtr,
         "cron",
         day_of_week="*", # every day"
         hour="6",
-        minute="52" # 06:55
+        minute="53" # 06:53
     )
 
     # logging.info("process started")

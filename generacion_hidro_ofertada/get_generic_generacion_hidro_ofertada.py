@@ -10,7 +10,7 @@ from global_utils.get_selenium_options import get_selenium_options
 
 
 def get_generacion_hidro_ofertada_generic(
-    market_type: str, systems: list = ["SIN", "BCS", "BCA"]
+    market_type: str, systems: list = ["SIN"]
 ):
     """
     Generic function to download Ofertas de Venta – Hidroeléctricas data from CENACE for any market type.

@@ -178,7 +178,6 @@ def process_and_send_csv_file(file_path: str, endpoint_url: str) -> bool:
 def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
     """
     Processes all CSV files in the download folder, sends to API, and deletes successful files.
-    Validates that exactly 3 CSV files are present (one for each system: SIN, BCS, BCA).
     Returns a summary of processed vs failed files.
     """
     if not os.path.exists(download_folder):
@@ -189,8 +188,8 @@ def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
     csv_files = [f for f in os.listdir(download_folder) if f.endswith('.csv')]
 
     # Validate exactly 3 CSV files
-    if len(csv_files) != 3:
-        error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
+    if len(csv_files) != 1:
+        error_msg = f"❌ Expected exactly 1 CSV files (for system: SIN), but found {len(csv_files)} files"
         logging.error(error_msg)
         if len(csv_files) == 0:
             logging.info("ℹ️ No CSV files found in download folder")
@@ -207,7 +206,7 @@ def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
         if sistema:
             found_systems.add(sistema)
 
-    expected_systems = {'SIN', 'BCS', 'BCA'}
+    expected_systems = {'SIN'}
     if found_systems != expected_systems:
         missing_systems = expected_systems - found_systems
         extra_systems = found_systems - expected_systems
