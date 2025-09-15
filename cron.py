@@ -12,6 +12,7 @@ from generacion_gi_ofertada import generacion_gi_ofertada
 from generacion_ndso_ofertada import generacion_ndso_ofertada
 from generacion_idr_ofertada import generacion_idr_ofertada
 from generacion_hidro_ofertada import generacion_hidro_ofertada
+from generacion_ofertada import generacion_ofertada
 
 
 # Ensure the logs directory exists
@@ -174,6 +175,26 @@ if __name__ == "__main__":
         day_of_week="*", # every day"
         hour="6",
         minute="53" # 06:53
+    )
+
+    # Ofertas de Venta – Térmicas MDA
+    # Run this script every day at 06:55 AM
+    scheduler.add_job(
+        generacion_ofertada.get_generacion_ofertada_mda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="55" # 06:55
+    )
+
+    # Ofertas de Venta – Térmicas MTR
+    # Run this script every day at 06:58 AM
+    scheduler.add_job(
+        generacion_ofertada.get_generacion_ofertada_mtr,
+        "cron",
+        day_of_week="*", # every day"
+        hour="6",
+        minute="58" # 06:58
     )
 
     # logging.info("process started")

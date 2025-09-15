@@ -1,288 +1,389 @@
 import os
-import re
 import logging
-import requests
-from datetime import datetime
-from typing import List, Dict
-from pandas import DataFrame, to_datetime
 import pandas as pd
+from typing import Dict, List
+from config import ENV
+from global_utils.send_data_in_chunks import send_data_in_chunks
+from global_utils.find_header_row import find_header_row
+from global_utils.clean_column_names import clean_column_names
+from global_utils.extract_fecha_operacion_from_filename import extract_fecha_operacion_from_filename
+from global_utils.extract_sistema_from_file import extract_sistema_from_filename
+from io import StringIO
 
-def extract_system_from_filename(filename: str) -> str | None:
+logging.basicConfig(level=logging.INFO)
+
+def rename_columns_to_target_structure(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Extract the system (BCS, BCA, or SIN) from the filename.
-    For Ofertas Térmicas MDA, all systems are available.
+    Renames columns to match the target structure for Generacion Ofertada data.
+    Maps CSV columns to the comprehensive database schema with all power blocks and reserve services.
+    Assumes columns have already been cleaned by clean_column_names().
+    """
+    import re
     
-    Args:
-        filename (str): The filename to extract system from
-        
-    Returns:
-        str | None: The system name (BCS, BCA, or SIN) or None if not found
-        
-    Example:
-        filename = "OfeVtaTermicaDiar SIN MDA Dia 2025-05-11 v2025 07 10_01 00 02"
-        returns: "SIN"
-    """
-    try:
-        # Remove file extension if present
-        filename_no_ext = os.path.splitext(filename)[0]
-        
-        # Look for system patterns in the filename
-        # Pattern 1: After "OfeVtaTermicaDiar" (most specific pattern for your files)
-        match = re.search(r'OfeVtaTermicaDiar\s+(BCS|BCA|SIN)\s+', filename_no_ext, re.IGNORECASE)
-        if match:
-            return match.group(1).upper()
-        
-        # Pattern 2: After "OfertasTermicas" or similar patterns
-        match = re.search(r'(Ofertas.*Termica|OfertasTermicas)\s+(BCS|BCA|SIN)\s+', filename_no_ext, re.IGNORECASE)
-        if match:
-            return match.group(2).upper()
-        
-        # Pattern 3: Just look for the systems anywhere in the filename
-        systems = ['BCS', 'BCA', 'SIN']
-        for system in systems:
-            if re.search(rf'\b{system}\b', filename_no_ext, re.IGNORECASE):
-                return system.upper()
-        
-        logging.warning(f"Could not extract system from filename: {filename}")
-        return None
-        
-    except Exception as e:
-        logging.error(f"Error extracting system from filename {filename}: {e}")
-        return None
-
-def find_data_header_row(df: DataFrame) -> int:
-    """
-    Finds the row index where the data headers are present for thermal offers.
-    """
-    header_row_idx = None
-    for idx, row in df.iterrows():
-        if idx > 15:  # Limit to first 15 rows to avoid long processing
-            break
-        
-        # Convert row to string and check for thermal-specific columns
-        row_str = str(row.values[0]).replace('"', '').lower()
-        
-        # Look for thermal-specific column patterns
-        if ('codigo' in row_str and 
-            ('tiempo' in row_str or 'costo' in row_str) and
-            ('arranque' in row_str or 'caliente' in row_str or 'tibio' in row_str or 'frio' in row_str)):
-            header_row_idx = idx + 1
-            return header_row_idx
-            
-    return header_row_idx if header_row_idx is not None else -1
-
-def get_dates_in_file(df: DataFrame) -> str | None:
-    """
-    Extract the operation date from the CSV file.
-    """
-    date = None
-
+    # Create a mapping dictionary for column renaming
+    column_mapping = {}
+    
     for col in df.columns:
-        for cell in df[col].astype(str):
-            # Extract Fecha or Dia pattern
-            match_date = re.search(r'(Fecha|Dia):\s*(\d{2}/[a-z]{3}/\d{4})', cell, re.IGNORECASE)
-            if match_date and not date:
-                date = match_date.group(2)
+        # Column should already be cleaned by clean_column_names()
+        # Just convert to lowercase for comparison
+        clean_col = str(col).lower()
+        
+        # Basic identification fields
+        if clean_col == 'codigo':
+            column_mapping[col] = 'Codigo'
+        elif clean_col == 'hora':
+            column_mapping[col] = 'HoraOperacion'
+        elif 'estatus' in clean_col and 'asignacion' in clean_col:
+            column_mapping[col] = 'EstatusAsignacion'
             
-            # Alternative pattern: look for date in format DD/MMM/YYYY
-            if not date:
-                match_date = re.search(r'\b(\d{2}/[a-z]{3}/\d{4})\b', cell, re.IGNORECASE)
-                if match_date:
-                    date = match_date.group(1)
-                    
-        if date:
-            break
+        # Dispatch limits
+        elif 'limite' in clean_col and 'despacho' in clean_col and 'maximo' in clean_col:
+            column_mapping[col] = 'LimiteDespachoMaximo_MW'
+        elif 'limite' in clean_col and 'despacho' in clean_col and 'minimo' in clean_col:
+            column_mapping[col] = 'LimiteDespachoMinimo_MW'
+        elif 'costo' in clean_col and 'operacion' in clean_col and 'potencia' in clean_col and 'minima' in clean_col:
+            column_mapping[col] = 'CostoOperacionPotenciaMinima'
             
-    if date:
-        # Map Spanish month abbreviations to English
-        month_map = {
-            'ene': 'Jan', 'feb': 'Feb', 'mar': 'Mar', 'abr': 'Apr', 'may': 'May', 'jun': 'Jun',
-            'jul': 'Jul', 'ago': 'Aug', 'sep': 'Sep', 'oct': 'Oct', 'nov': 'Nov', 'dic': 'Dec'
-        }
-        for es, en in month_map.items():
-            if f"/{es}/" in date:
-                date = date.replace(f"/{es}/", f"/{en}/")
-                break
+        # Power blocks - handle "Bloque de Potencia XX (MW)" pattern
+        elif 'bloque' in clean_col and 'potencia' in clean_col and '(mw)' in clean_col:
+            # Extract block number using regex
+            block_match = re.search(r'bloque\s+de\s+potencia\s+(\d+)', clean_col)
+            if block_match:
+                block_num = block_match.group(1).zfill(2)  # Format as 01, 02, etc.
+                column_mapping[col] = f'BloquePotencia{block_num}_MW'
                 
-        formatted_date = to_datetime(date, format='%d/%b/%Y').strftime('%Y-%m-%d')
-    else:
-        logging.warning("No date found in the file.")
-        return None
+        # Power block costs - handle "Costo Incremental de generacion Bloque XX ($/MWh)" pattern
+        elif 'costo' in clean_col and 'incremental' in clean_col and 'generacion' in clean_col and 'bloque' in clean_col:
+            # Extract block number using regex
+            block_match = re.search(r'bloque\s+(\d+)', clean_col)
+            if block_match:
+                block_num = block_match.group(1).zfill(2)  # Format as 01, 02, etc.
+                column_mapping[col] = f'CostoIncrementalBloque{block_num}_MWh'
         
-    return formatted_date
-
-
-def extract_data_from_csv(file_path: str) -> List[Dict]:
-    """
-    Extract data from CSV file and convert to the required format for thermal generation offers.
-    """
-    try:
-        # Read CSV with pandas to handle the data section
-        df = pd.read_csv(file_path, encoding='utf-8', sep=';')
-
-        # Extract operation date
-        dia_operacion = get_dates_in_file(df)
-        print(f"Extracted operation date: {dia_operacion}")
-        if not dia_operacion:
-            logging.error(f"Could not extract date from {file_path}")
-            return []
-
-        skip_rows_index = find_data_header_row(df)
-        print(f"Skip rows index: {skip_rows_index}")
-        if skip_rows_index is None or skip_rows_index < 0:
-            logging.info("No data header row found in the file.")
-            return []
+        # Reserve services - Reserva rodante 10 min (NOT suplementaria, NOT "no rodante")
+        elif ('reserva' in clean_col and 'rodante' in clean_col and '10' in clean_col and 'min' in clean_col and 
+              'suplementaria' not in clean_col and 'no' not in clean_col):
+            if 'costo' in clean_col:
+                column_mapping[col] = 'CostoReservaRodante10Min_MW'
+            else:
+                column_mapping[col] = 'ReservaRodante10Min_MW'
+                
+        # Reserve services - Reserva no rodante 10 min (must have "no" in it)
+        elif ('reserva' in clean_col and 'no' in clean_col and 'rodante' in clean_col and '10' in clean_col and 'min' in clean_col and 
+              'suplementaria' not in clean_col):
+            if 'costo' in clean_col:
+                column_mapping[col] = 'CostoReservaNoRodante10Min_MW'
+            else:
+                column_mapping[col] = 'ReservaNoRodante10Min_MW'
+                
+        # Reserve services - Reserva rodante suplementaria (NOT "no rodante")
+        elif ('reserva' in clean_col and 'rodante' in clean_col and 'suplementaria' in clean_col and 
+              'no' not in clean_col):
+            if 'costo' in clean_col:
+                column_mapping[col] = 'CostoReservaRodanteSuplementaria_MW'
+            else:
+                column_mapping[col] = 'ReservaRodanteSuplementaria_MW'
+                
+        # Reserve services - Reserva no rodante suplementaria (must have "no" in it)
+        elif ('reserva' in clean_col and 'no' in clean_col and 'rodante' in clean_col and 'suplementaria' in clean_col):
+            if 'costo' in clean_col:
+                column_mapping[col] = 'CostoReservaNoRodanteSuplementaria_MW'
+            else:
+                column_mapping[col] = 'ReservaNoRodanteSuplementaria_MW'
+                
+        # Reserve services - Reserva regulacion secundaria
+        elif 'reserva' in clean_col and 'regulacion' in clean_col and 'secundaria' in clean_col:
+            if 'costo' in clean_col:
+                column_mapping[col] = 'CostoReservaRegulacionSecundaria_MW'
+            else:
+                column_mapping[col] = 'ReservaRegulacionSecundaria_MW'
     
-        if skip_rows_index == 0:
-            logging.error("Error: skip_rows_index is 0, header row index would be invalid.")
-            return []
+    # Apply the mapping
+    df_renamed = df.rename(columns=column_mapping)
+    
+    # Log the mapping for debugging
+    if column_mapping:
+        logging.info(f"Successfully mapped {len(column_mapping)} columns:")
+        for original, mapped in column_mapping.items():
+            logging.info(f"  '{original}' → '{mapped}'")
+    else:
+        logging.warning("❌ No column mappings found - check CSV structure")
+        logging.info(f"Available columns: {list(df.columns)}")
+    
+    return df_renamed
 
-        # Extract the system from the filename
-        system = extract_system_from_filename(os.path.basename(file_path))
-        print(f"Extracted system: {system}")
-        if not system:
-            logging.error(f"Could not extract system from filename: {file_path}")
-            return []
-
-        # Extract data from the DataFrame
-        df = pd.read_csv(file_path, encoding='utf-8', sep=',', skiprows=skip_rows_index)
-        df.columns = df.columns.str.strip()
-
-        # Define column mapping for thermal generation offers
-        column_mapping = {
-            'Codigo': 'Codigo',
-            'Tiempo en paro para Arranque Caliente (Horas)': 'TiempoParoArranqueCaliente_Horas',
-            'Costo de Arranque Caliente ($)': 'CostoArranqueCaliente',
-            'Tiempo en paro para Arranque Tibio (Horas)': 'TiempoParoArranqueTibio_Horas', 
-            'Costo de Arranque Tibio ($)': 'CostoArranqueTibio',
-            'Tiempo en paro para Arranque Frio (Horas)': 'TiempoParoArranqueFrio_Horas',
-            'Costo de Arranque Frio ($)': 'CostoArranqueFrio',
-        }
-
-        # Find the actual column names in the DataFrame
-        actual_columns = {}
-        for df_col in df.columns:
-            for mapping_key, mapping_value in column_mapping.items():
-                if df_col.lower().strip() == mapping_key.lower().strip():
-                    actual_columns[mapping_value] = df_col
-                    break
-        
-        # Check if we have the required columns
-        required_fields = [
-            'Codigo', 'TiempoParoArranqueCaliente_Horas', 'CostoArranqueCaliente',
-            'TiempoParoArranqueTibio_Horas', 'CostoArranqueTibio',
-            'TiempoParoArranqueFrio_Horas', 'CostoArranqueFrio'
-        ]
-        
-        missing_columns = []
-        for field in required_fields:
-            if field not in actual_columns:
-                missing_columns.append(field)
-        
-        if missing_columns:
-            logging.error(f"Missing columns in {file_path}: {missing_columns}")
-            logging.info(f"Available columns: {list(df.columns)}")
-            return []
-        
-        data_list = []
-        for _, row in df.iterrows():
-            try:
-                # Skip rows with empty or invalid Codigo
-                codigo = str(row[actual_columns['Codigo']]).strip()
-                if not codigo or codigo.lower() in ['nan', 'none', '']:
-                    continue
-                    
-                record = {
-                    'DiaOperacion': dia_operacion,
-                    'Sistema': system,
-                    'Codigo': codigo,
-                    'TiempoParoArranqueCaliente_Horas': int(float(row[actual_columns['TiempoParoArranqueCaliente_Horas']])),
-                    'CostoArranqueCaliente': float(row[actual_columns['CostoArranqueCaliente']]),
-                    'TiempoParoArranqueTibio_Horas': int(float(row[actual_columns['TiempoParoArranqueTibio_Horas']])),
-                    'CostoArranqueTibio': float(row[actual_columns['CostoArranqueTibio']]),
-                    'TiempoParoArranqueFrio_Horas': int(float(row[actual_columns['TiempoParoArranqueFrio_Horas']])),
-                    'CostoArranqueFrio': float(row[actual_columns['CostoArranqueFrio']]),
-                    'Fecha_Creacion': datetime.now().isoformat(sep=' '),
-                    'Fecha_Actualizacion': datetime.now().isoformat(sep=' ')
-                }
-                data_list.append(record)
-            except (ValueError, TypeError) as e:
-                logging.warning(f"Error converting row data in {file_path}: {e}")
-                continue
-        
-        logging.info(f"Extracted {len(data_list)} records from {file_path}")
-        return data_list
-        
-    except Exception as e:
-        logging.error(f"Error processing CSV file {file_path}: {e}")
+def process_csv_file(file_path: str) -> List[Dict]:
+    """
+    Processes a single Generacion Ofertada CSV file and returns a list of dictionaries with the target structure.
+    """
+    filename = os.path.basename(file_path)
+    
+    # Extract Sistema and FechaOperacion from filename
+    sistema = extract_sistema_from_filename(filename)
+    fecha_operacion = extract_fecha_operacion_from_filename(filename)
+    
+    if not sistema:
+        logging.error(f"Could not extract Sistema from filename: {filename}")
+        return []
+    
+    if not fecha_operacion:
+        logging.error(f"Could not extract FechaOperacion from filename: {filename}")
         return []
 
-def process_all_csv_files(download_folder: str) -> List[Dict]:
+    logging.info(f"Processing file: {filename}")
+    logging.info(f"Sistema: {sistema}")
+    logging.info(f"FechaOperacion: {fecha_operacion}")
+
+    # Read CSV file with error handling for mixed column counts
+    try:
+        # First, read the file line by line to handle mixed structures
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        try:
+            with open(file_path, 'r', encoding='latin-1') as f:
+                content = f.read()
+        except Exception as e:
+            logging.error(f"Error reading file {filename}: {e}")
+            return []
+    
+    # Split into lines
+    lines = content.split('\n')
+    
+    # Create a temporary DataFrame to use find_header_row function
+    temp_df = pd.DataFrame([line.split(',') for line in lines[:25]])  # Only first 25 lines to find header
+    
+    # Find the line with the headers for Generacion Ofertada
+    header_line_idx = find_header_row(temp_df, "Codigo", "Hora")
+    logging.info(f"Header line index: {header_line_idx}")
+
+    if header_line_idx == -1:
+        logging.warning(f"Could not find header line in file: {filename}")
+        return []
+    
+    # Create a temporary file with only the data part (headers + data rows)
+    data_lines = lines[header_line_idx:]
+    temp_csv_content = '\n'.join(data_lines)
+    
+    # Now read this as a proper CSV
+    try:
+        df = pd.read_csv(StringIO(temp_csv_content), encoding='utf-8')
+    except Exception as e:
+        logging.error(f"Error parsing CSV data from {filename}: {e}")
+        return []
+    
+    # Clean column names
+    df.columns = clean_column_names(df.columns)
+    
+    # Rename columns to match target structure
+    df = rename_columns_to_target_structure(df)
+    
+    # Add Sistema and FechaOperacion to each row
+    df['Sistema'] = sistema
+    df['FechaOperacion'] = fecha_operacion
+    
+    # Convert to list of dictionaries
+    result = []
+    for _, row in df.iterrows():
+        # Skip empty rows
+        if pd.isna(row.get('HoraOperacion')) or row.get('HoraOperacion') == '':
+            continue
+            
+        try:
+            # Helper function to safely convert values
+            def safe_float(value, default=0.0):
+                try:
+                    if pd.isna(value) or value == '' or value is None:
+                        return default
+                    return float(str(value).replace(',', ''))
+                except (ValueError, TypeError):
+                    return default
+            
+            def safe_int(value, default=0):
+                try:
+                    if pd.isna(value) or value == '' or value is None:
+                        return default
+                    return int(float(str(value)))
+                except (ValueError, TypeError):
+                    return default
+            
+            def safe_string(value, default=''):
+                try:
+                    if pd.isna(value) or value is None:
+                        return default
+                    return str(value).strip().replace('"', '')
+                except:
+                    return default
+            
+            record = {
+                # Basic identification
+                'FechaOperacion': fecha_operacion,
+                'Codigo': safe_string(row.get('Codigo', '')),
+                'HoraOperacion': safe_int(row.get('HoraOperacion', 0)),
+                'Sistema': sistema,
+                'EstatusAsignacion': safe_string(row.get('EstatusAsignacion', 'ECO')),
+                
+                # Dispatch limits
+                'LimiteDespachoMaximo_MW': safe_float(row.get('LimiteDespachoMaximo_MW', 0)),
+                'LimiteDespachoMinimo_MW': safe_float(row.get('LimiteDespachoMinimo_MW', 0)),
+                'CostoOperacionPotenciaMinima': safe_float(row.get('CostoOperacionPotenciaMinima', 0)),
+                
+                # Power blocks (11 blocks)
+                'BloquePotencia01_MW': safe_float(row.get('BloquePotencia01_MW', 0)),
+                'CostoIncrementalBloque01_MWh': safe_float(row.get('CostoIncrementalBloque01_MWh', 0)),
+                'BloquePotencia02_MW': safe_float(row.get('BloquePotencia02_MW', 0)),
+                'CostoIncrementalBloque02_MWh': safe_float(row.get('CostoIncrementalBloque02_MWh', 0)),
+                'BloquePotencia03_MW': safe_float(row.get('BloquePotencia03_MW', 0)),
+                'CostoIncrementalBloque03_MWh': safe_float(row.get('CostoIncrementalBloque03_MWh', 0)),
+                'BloquePotencia04_MW': safe_float(row.get('BloquePotencia04_MW', 0)),
+                'CostoIncrementalBloque04_MWh': safe_float(row.get('CostoIncrementalBloque04_MWh', 0)),
+                'BloquePotencia05_MW': safe_float(row.get('BloquePotencia05_MW', 0)),
+                'CostoIncrementalBloque05_MWh': safe_float(row.get('CostoIncrementalBloque05_MWh', 0)),
+                'BloquePotencia06_MW': safe_float(row.get('BloquePotencia06_MW', 0)),
+                'CostoIncrementalBloque06_MWh': safe_float(row.get('CostoIncrementalBloque06_MWh', 0)),
+                'BloquePotencia07_MW': safe_float(row.get('BloquePotencia07_MW', 0)),
+                'CostoIncrementalBloque07_MWh': safe_float(row.get('CostoIncrementalBloque07_MWh', 0)),
+                'BloquePotencia08_MW': safe_float(row.get('BloquePotencia08_MW', 0)),
+                'CostoIncrementalBloque08_MWh': safe_float(row.get('CostoIncrementalBloque08_MWh', 0)),
+                'BloquePotencia09_MW': safe_float(row.get('BloquePotencia09_MW', 0)),
+                'CostoIncrementalBloque09_MWh': safe_float(row.get('CostoIncrementalBloque09_MWh', 0)),
+                'BloquePotencia10_MW': safe_float(row.get('BloquePotencia10_MW', 0)),
+                'CostoIncrementalBloque10_MWh': safe_float(row.get('CostoIncrementalBloque10_MWh', 0)),
+                'BloquePotencia11_MW': safe_float(row.get('BloquePotencia11_MW', 0)),
+                'CostoIncrementalBloque11_MWh': safe_float(row.get('CostoIncrementalBloque11_MWh', 0)),
+                
+                # Reserve services
+                'ReservaRodante10Min_MW': safe_float(row.get('ReservaRodante10Min_MW', 0)),
+                'CostoReservaRodante10Min_MW': safe_float(row.get('CostoReservaRodante10Min_MW', 0)),
+                'ReservaNoRodante10Min_MW': safe_float(row.get('ReservaNoRodante10Min_MW', 0)),
+                'CostoReservaNoRodante10Min_MW': safe_float(row.get('CostoReservaNoRodante10Min_MW', 0)),
+                'ReservaRodanteSuplementaria_MW': safe_float(row.get('ReservaRodanteSuplementaria_MW', 0)),
+                'CostoReservaRodanteSuplementaria_MW': safe_float(row.get('CostoReservaRodanteSuplementaria_MW', 0)),
+                'ReservaNoRodanteSuplementaria_MW': safe_float(row.get('ReservaNoRodanteSuplementaria_MW', 0)),
+                'CostoReservaNoRodanteSuplementaria_MW': safe_float(row.get('CostoReservaNoRodanteSuplementaria_MW', 0)),
+                'ReservaRegulacionSecundaria_MW': safe_float(row.get('ReservaRegulacionSecundaria_MW', 0)),
+                'CostoReservaRegulacionSecundaria_MW': safe_float(row.get('CostoReservaRegulacionSecundaria_MW', 0))
+            }
+            
+            # Validate that we have at least the basic required fields
+            if not record['Codigo'] or record['HoraOperacion'] == 0:
+                logging.warning(f"Skipping row with missing required fields: Codigo={record['Codigo']}, HoraOperacion={record['HoraOperacion']}")
+                continue
+                
+            result.append(record)
+            
+        except Exception as e:
+            logging.warning(f"Error processing row in {filename}: {e}")
+            continue
+
+    logging.info(f"Processed {len(result)} records from {filename}")
+    return result
+
+def process_and_send_csv_file(file_path: str, endpoint_url: str) -> bool:
     """
-    Process all CSV files in the download folder and return combined data.
+    Processes a single CSV file, sends data to API in chunks, and deletes file if successful.
+    Returns True if successful, False otherwise.
+    """
+    filename = os.path.basename(file_path)
+    logging.info(f"\n🔄 Processing file: {filename}")
+
+    # Process the CSV file
+    processed_data = process_csv_file(file_path)
+    logging.info(f"Processed {len(processed_data)} records from {filename}")
+    
+    if not processed_data:
+        logging.error(f"❌ No data extracted from {filename}")
+        return False
+    
+    # Send data to API in chunks
+    success = send_data_in_chunks(processed_data, endpoint_url, chunk_size=2000)
+    
+    if success:
+        try:
+            # Delete the file after successful API call
+            os.remove(file_path)
+            logging.info(f"✅ File {filename} processed and deleted successfully")
+            return True
+        except OSError as e:
+            logging.warning(f"⚠️ Data sent successfully but failed to delete file {filename}: {e}")
+            return True  # Still consider this a success since data was sent
+    else:
+        logging.error(f"❌ Failed to process {filename} - file kept for retry")
+        return False
+
+def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
+    """
+    Processes all CSV files in the download folder, sends to API, and deletes successful files.
+    Validates that exactly 3 CSV files are present (one for each system: SIN, BCS, BCA).
+    Returns a summary of processed vs failed files.
     """
     if not os.path.exists(download_folder):
-        logging.error(f"Download folder does not exist: {download_folder}")
-        return []
+        logging.error(f"❌ Download folder not found: {download_folder}")
+        return {"processed": 0, "failed": 0, "total": 0, "error": "Download folder not found"}
     
+    # Get all CSV files in the download folder
     csv_files = [f for f in os.listdir(download_folder) if f.endswith('.csv')]
     
-    if not csv_files:
-        logging.warning(f"No CSV files found in {download_folder}")
-        return []
-    
-    logging.info(f"Found {len(csv_files)} CSV files to process")
-    
+    # Validate exactly 3 CSV files
     if len(csv_files) != 3:
-        logging.warning(f"Expected 3 CSV files (one for each system), found {len(csv_files)}. Processing available files.")
-        return [] 
+        error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
+        logging.error(error_msg)
+        if len(csv_files) == 0:
+            logging.info("ℹ️ No CSV files found in download folder")
+        else:
+            logging.info(f"📁 Found files: {csv_files}")
+        return {"processed": 0, "failed": 0, "total": len(csv_files), "error": error_msg}
+
+    logging.info(f"📁 Found {len(csv_files)} CSV files to process (validation passed)")
     
-    all_data = []
+    # Verify we have one file for each system
+    found_systems = set()
+    for csv_file in csv_files:
+        sistema = extract_sistema_from_filename(csv_file)
+        if sistema:
+            found_systems.add(sistema)
+    
+    expected_systems = {'SIN', 'BCS', 'BCA'}
+    if found_systems != expected_systems:
+        missing_systems = expected_systems - found_systems
+        extra_systems = found_systems - expected_systems
+        error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
+        logging.error(error_msg)
+        return {"processed": 0, "failed": 0, "total": len(csv_files), "error": error_msg}
+
+    logging.info(f"✅ System validation passed: Found files for {found_systems}")
+
+    processed_count = 0
+    failed_count = 0
+    
     for csv_file in csv_files:
         file_path = os.path.join(download_folder, csv_file)
-        logging.info(f"Processing file: {csv_file}")
         
-        file_data = extract_data_from_csv(file_path)
-        if file_data:
-            all_data.extend(file_data)
-            logging.info(f"Added {len(file_data)} records from {csv_file}")
+        success = process_and_send_csv_file(file_path, endpoint_url)
+        
+        if success:
+            processed_count += 1
         else:
-            logging.warning(f"No data extracted from {csv_file}")
+            failed_count += 1
     
-    logging.info(f"Total records extracted: {len(all_data)}")
-    return all_data
+    # Check if download folder is empty
+    remaining_files = [f for f in os.listdir(download_folder) if f.endswith('.csv')]
 
+    logging.info(f"\n📊 Processing Summary:")
+    logging.info(f"✅ Successfully processed: {processed_count}")
+    logging.info(f"❌ Failed: {failed_count}")
+    logging.info(f"📂 Remaining CSV files: {len(remaining_files)}")
 
-def send_data_to_endpoint(data: List[Dict], endpoint_url: str = "") -> bool:
-    """
-    Send the extracted data to a specified endpoint via POST request.
-    """
-    if not endpoint_url:
-        logging.warning("No endpoint URL provided. Skipping POST request.")
-        return False
-    
-    if not data:
-        logging.warning("No data to send.")
-        return False
-    
-    try:
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        
-        response = requests.post(endpoint_url, json=data, headers=headers, timeout=30)
-        
-        if response.status_code == 200 or response.status_code == 201:
-            print(f"Successfully sent {len(data)} records to endpoint")
-            logging.info(f"Successfully sent {len(data)} records to endpoint")
-            return True
-        else:
-            logging.error(f"Failed to send data. Status code: {response.status_code}, Response: {response.text}")
-            return False
-            
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error sending POST request: {e}")
-        return False
-    except Exception as e:
-        logging.error(f"Unexpected error sending data: {e}")
-        return False
+    if len(remaining_files) == 0:
+        logging.info("🎉 Download folder is now empty!")
+    else:
+        logging.warning(f"⚠️ {len(remaining_files)} files remain in download folder")
+        for file in remaining_files:
+            logging.info(f"   - {file}")
+
+    return {
+        "processed": processed_count,
+        "failed": failed_count,
+        "total": len(csv_files),
+        "remaining": len(remaining_files)
+    }
