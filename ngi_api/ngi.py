@@ -20,8 +20,10 @@ def get_ngi_data():
         chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
         auth_endpoint = f"{ngi_endpoint}auth"
-        issue_date = datetime.now().strftime("%Y-%m-%d")
-        datafeed_endpoint = f"{ngi_endpoint}forwardDatafeed.json?issue_date={issue_date}" 
+        # issue_date = datetime.now().strftime("%Y-%m-%d")
+        # change issue date for 8 september 2025
+        issue_date = "2025-09-08"
+        datafeed_endpoint = f"{ngi_endpoint}forwardDatafeed.json?issue_date={issue_date}"
 
         # """ Step 1: Retrieve JWT """
         data = {
@@ -98,5 +100,5 @@ def get_ngi_data():
             logging.error(f"Failed to write data: {response.status_code} - {response.text}")
             send_telegram_message(bot_token, chat_id, f"Failed to save data. Status code: {response.status_code}")
 
-    except Exception as e: 
+    except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")

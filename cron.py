@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     # NGI API
     # Run this script from monday to friday at 8:00 AM
-    scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=8, minute=0)
+    scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=17, minute=53)
 
     # Demanda tiempo real
     # Run this script every day from 8:00 AM to 11:55 PM
