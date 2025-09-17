@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options  # Better import style
 from selenium.webdriver.chrome.service import Service  # Added
 import time
 from dotenv import load_dotenv
-from capacidad_transferencia import get_capacidad_transferencia_data
+from capacidad_transferencia.get_capacidad_transferencia_data import get_capacidad_transferencia_data
 
 
 def get_capacidad_transferencia():
@@ -104,4 +104,3 @@ def get_capacidad_transferencia():
             # Wait for the download to complete
             driver.quit()
             logging.info("Driver closed successfully.")
-    

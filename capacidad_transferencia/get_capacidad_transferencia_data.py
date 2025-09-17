@@ -4,12 +4,14 @@ import requests
 import pandas as pd
 import os
 import logging
+from config import ENV
 
 def get_capacidad_transferencia_data(csv_directory):
     # --- Configuration ---
     # *** IMPORTANT: Ensure this endpoint accepts a LIST of records in the JSON body ***
-    API_URL = os.getenv("API_URL")
-    API_ENDPOINT = f"{API_URL}/api/v1/capacidad_transferencia"
+    # API_URL = os.getenv("API_URL")
+    API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
+    API_ENDPOINT = f"{API_URL}/api/v1/capacidad-transferencia-mda/bulk"
     # Directory containing the CSV files
     # Number of rows to skip at the beginning of each CSV
     CSV_SEPARATOR = ',' 

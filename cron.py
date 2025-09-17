@@ -13,6 +13,8 @@ from generacion_ndso_ofertada import generacion_ndso_ofertada
 from generacion_idr_ofertada import generacion_idr_ofertada
 from generacion_hidro_ofertada import generacion_hidro_ofertada
 from generacion_ofertada import generacion_ofertada
+from cantidades_asignadas_servicios_conexos import cantidades_asignadas_servicios_conexos
+from capacidad_transferencia import capacidad_transferencia
 
 
 # Ensure the logs directory exists
@@ -37,7 +39,7 @@ if __name__ == "__main__":
 
     # NGI API
     # Run this script from monday to friday at 8:00 AM
-    scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=17, minute=53)
+    scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=8, minute=0)
 
     # Demanda tiempo real
     # Run this script every day from 8:00 AM to 11:55 PM
@@ -196,6 +198,36 @@ if __name__ == "__main__":
         hour="6",
         minute="58" # 06:58
     )
+
+    # Cantidades Asignadas Servicios Conexos MDA
+    # Run this script every day at 8:00 PM
+    scheduler.add_job(
+        cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="20",
+        minute="0" # 20:00
+       )
+
+    # Cantidades Asignadas Servicios Conexos MTR
+    # Run this script every day at 8:05 PM
+    scheduler.add_job(
+        cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mtr,
+        "cron",
+        day_of_week="*", # every day"
+        hour="20",
+        minute="5" # 20:05
+       )
+
+    # Capacidad de Transferencia MDA
+    # Run this script every day at 9:50 AM
+    scheduler.add_job(
+        capacidad_transferencia.get_capacidad_transferencia,
+        "cron",
+        day_of_week="*", # every day"
+        hour="9",
+        minute="50" # 09:50
+       )
 
     # logging.info("process started")
     scheduler.start()
