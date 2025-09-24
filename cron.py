@@ -4,6 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import os
 from ngi_api import ngi
+
 # from demanda import demanda
 from demanda_real_balance import demanda_real_balance
 from pml import pml
@@ -13,17 +14,20 @@ from generacion_ndso_ofertada import generacion_ndso_ofertada
 from generacion_idr_ofertada import generacion_idr_ofertada
 from generacion_hidro_ofertada import generacion_hidro_ofertada
 from generacion_ofertada import generacion_ofertada
-from cantidades_asignadas_servicios_conexos import cantidades_asignadas_servicios_conexos
+from cantidades_asignadas_servicios_conexos import (
+    cantidades_asignadas_servicios_conexos,
+)
 from capacidad_transferencia import capacidad_transferencia
-
+from asignacion_por_participante_mercado import asignacion_por_participante_mercado
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
 scheduler = BackgroundScheduler()
 
+
 def shutdown(signum, frame):
     logging.info("Shutting down scheduler...")
-    scheduler.shutdown(wait=False) # Use wait=True if you want running jobs to finish
+    scheduler.shutdown(wait=False)  # Use wait=True if you want running jobs to finish
     exit(0)
 
 
@@ -56,68 +60,68 @@ if __name__ == "__main__":
     scheduler.add_job(
         demanda_real_balance.get_demanda_real_balance,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="15",
-        minute="25" # 15:25
-       )
+        minute="25",  # 15:25
+    )
 
     # PML MDA
     # Run this script every day at 06:00 AM
     scheduler.add_job(
         pml.get_pml_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="0" # 06:00
-       )
+        minute="0",  # 06:00
+    )
 
     # PML MTR
     # Run this script every day at 06:05 AM
     scheduler.add_job(
         pml.get_pml_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="06",
-        minute="5" # 06:05
-       )
+        minute="5",  # 06:05
+    )
 
     # Servicios Conexos MDA
     # Run this script every day at 06:10 AM
     scheduler.add_job(
         servicios_conexos.get_servicios_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="10" # 06:10
-       )
+        minute="10",  # 06:10
+    )
 
     # Servicios Conexos MTR
     # Run this script every day at 06:15 AM
     scheduler.add_job(
         servicios_conexos.get_servicios_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="15" # 06:15
-       )
+        minute="15",  # 06:15
+    )
 
     # Ofertas del GI - Programa de Generación MDA
     # Run this script every day at 06:20 AM
     scheduler.add_job(
         generacion_gi_ofertada.get_generacion_gi_ofertada_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="20" # 06:20
+        minute="20",  # 06:20
     )
     # Ofertas del GI - Programa de Generación MTR
     # Run this script every day at 06:25 AM
     scheduler.add_job(
         generacion_gi_ofertada.get_generacion_gi_ofertada_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="25" # 06:25
+        minute="25",  # 06:25
     )
 
     # Ofertas de Venta – No Despachable MDA
@@ -125,9 +129,9 @@ if __name__ == "__main__":
     scheduler.add_job(
         generacion_ndso_ofertada.get_generacion_ndso_ofertada_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="30" # 06:30
+        minute="30",  # 06:30
     )
 
     # Ofertas de Venta – Despachable MTR
@@ -135,9 +139,9 @@ if __name__ == "__main__":
     scheduler.add_job(
         generacion_ndso_ofertada.get_generacion_ndso_ofertada_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="35" # 06:35
+        minute="35",  # 06:35
     )
 
     # Ofertas de Venta – Recursos Interm Despachables MDA
@@ -145,9 +149,9 @@ if __name__ == "__main__":
     scheduler.add_job(
         generacion_idr_ofertada.get_generacion_idr_ofertada_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="40" # 06:40
+        minute="40",  # 06:40
     )
 
     # Ofertas de Venta – Recursos Interm Despachables MTR
@@ -155,18 +159,18 @@ if __name__ == "__main__":
     scheduler.add_job(
         generacion_idr_ofertada.get_generacion_idr_ofertada_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="45" # 06:45
+        minute="45",  # 06:45
     )
     # Ofertas de Venta – Hidroeléctricas MDA
     # Run this script every day at 06:50 AM
     scheduler.add_job(
         generacion_hidro_ofertada.get_generacion_hidro_ofertada_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="50" # 06:50
+        minute="50",  # 06:50
     )
 
     # Ofertas de Venta – Hidroeléctricas MTR
@@ -174,9 +178,9 @@ if __name__ == "__main__":
     scheduler.add_job(
         generacion_hidro_ofertada.get_generacion_hidro_ofertada_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="53" # 06:53
+        minute="53",  # 06:53
     )
 
     # Ofertas de Venta – Térmicas MDA
@@ -184,9 +188,9 @@ if __name__ == "__main__":
     scheduler.add_job(
         generacion_ofertada.get_generacion_ofertada_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="55" # 06:55
+        minute="55",  # 06:55
     )
 
     # Ofertas de Venta – Térmicas MTR
@@ -194,9 +198,19 @@ if __name__ == "__main__":
     scheduler.add_job(
         generacion_ofertada.get_generacion_ofertada_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="6",
-        minute="58" # 06:58
+        minute="58",  # 06:58
+    )
+
+    # Capacidad de Transferencia MDA
+    # Run this script every day at 9:50 AM
+    scheduler.add_job(
+        capacidad_transferencia.get_capacidad_transferencia,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="9",
+        minute="50",  # 09:50
     )
 
     # Cantidades Asignadas Servicios Conexos MDA
@@ -204,36 +218,36 @@ if __name__ == "__main__":
     scheduler.add_job(
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mda,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="20",
-        minute="0" # 20:00
-       )
+        minute="0",  # 20:00
+    )
 
     # Cantidades Asignadas Servicios Conexos MTR
     # Run this script every day at 8:05 PM
     scheduler.add_job(
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mtr,
         "cron",
-        day_of_week="*", # every day"
+        day_of_week="*",  # every day"
         hour="20",
-        minute="5" # 20:05
-       )
+        minute="05",  # 20:05
+    )
 
-    # Capacidad de Transferencia MDA
-    # Run this script every day at 9:50 AM
+    # Asignación por Participante de Mercado
+    # Run this script every day at 10:00 PM
     scheduler.add_job(
-        capacidad_transferencia.get_capacidad_transferencia,
+        asignacion_por_participante_mercado.get_asignacion_por_participante_mercado,
         "cron",
-        day_of_week="*", # every day"
-        hour="9",
-        minute="50" # 09:50
-       )
+        day_of_week="*",  # every day"
+        hour="17",
+        minute="4",  # 22:00
+    )
 
     # logging.info("process started")
     scheduler.start()
 
     signal.signal(signal.SIGTERM, shutdown)
-    signal.signal(signal.SIGINT, shutdown) # Ctrl+C
+    signal.signal(signal.SIGINT, shutdown)  # Ctrl+C
 
     try:
         while True:
