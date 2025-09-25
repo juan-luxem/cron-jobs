@@ -19,6 +19,7 @@ from cantidades_asignadas_servicios_conexos import (
 )
 from capacidad_transferencia import capacidad_transferencia
 from asignacion_por_participante_mercado import asignacion_por_participante_mercado
+from servicios_conexos_por_zona_reserva import servicios_conexos_por_zona_reserva
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -239,8 +240,18 @@ if __name__ == "__main__":
         asignacion_por_participante_mercado.get_asignacion_por_participante_mercado,
         "cron",
         day_of_week="*",  # every day"
-        hour="17",
-        minute="4",  # 22:00
+        hour="22",
+        minute="0",  # 22:00
+    )
+
+    # Servicios Conexos por Zona de Reserva
+    # Run this script every day at 10:05 PM
+    scheduler.add_job(
+        servicios_conexos_por_zona_reserva.run_servicios_conexos_por_zona_reserva,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="22",
+        minute="5",  # 22:05
     )
 
     # logging.info("process started")

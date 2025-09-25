@@ -9,9 +9,9 @@ from selenium.common.exceptions import TimeoutException
 from global_utils.get_selenium_options import get_selenium_options
 
 
-def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", "BCA"]):
+def get_servicios_conexos_por_zona_reserva(systems: list = ["SIN", "BCS", "BCA"]):
     """
-    Generic function to download Asignación por Participante del Mercado data from CENACE.
+    Generic function to download Servicios Conexos por Zona de Reserva data from CENACE.
     """
 
     url = "https://www.cenace.gob.mx/Paginas/SIM/Reportes/ResultadosMDA.aspx"
@@ -32,7 +32,7 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
     try:
         driver.get(url)
 
-        # First, select "Asignación por Participante del Mercado" from the first dropdown
+        # First, select "Servicios Conexos por Zona de Reserva" from the first dropdown
         try:
             report_select_element = wait.until(
                 EC.presence_of_element_located(
@@ -41,9 +41,9 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
             )
             report_select = Select(report_select_element)
             report_select.select_by_value(
-                "348"
-            )  # Asignación por Participante del Mercado
-            logging.info("Selected 'Asignación por Participante del Mercado' option")
+                "349"
+            )  # Servicios Conexos por Zona de Reserva
+            logging.info("Selected 'Servicios Conexos por Zona de Reserva' option")
 
             # Wait for postback to complete and page to load
             time.sleep(5)
@@ -94,5 +94,5 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
     except Exception as e:
         logging.error(f"An unexpected error occurred during the process: {e}")
     finally:
-        logging.info("Download process for finished.")
+        logging.info("Download process finished.")
         driver.quit()

@@ -16,37 +16,23 @@ logging.basicConfig(level=logging.INFO)
 
 def rename_columns_to_target_structure(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Renames columns to match the target structure for AsignacionPorParticipanteMercado data.
+    Renames columns to match the target structure for ServiciosConexosPorZonaDeReserva data.
     """
-    # Create a mapping dictionary for column renaming
-    column_mapping = {}
-
-    for col in df.columns:
-        clean_col = str(col).strip().lower()
-        if "participante" in clean_col:
-            column_mapping[col] = "Participante"
-        elif "hora" in clean_col:
-            column_mapping[col] = "HoraOperacion"
-        elif "cantidad total de energia asignada" in clean_col:
-            column_mapping[col] = "CantidadTotalEnergiaAsignada_MWh"
-        elif "reserva de regulacion" in clean_col:
-            column_mapping[col] = "ReservaRegulacion_MW"
-        elif "reserva rodante de 10 minutos" in clean_col:
-            column_mapping[col] = "ReservaRodante10Min_MW"
-        elif "reserva no rodante de 10 minutos" in clean_col:
-            column_mapping[col] = "ReservaNoRodante10Min_MW"
-        elif "reserva rodante suplementaria" in clean_col:
-            column_mapping[col] = "ReservaRodanteSuplementaria_MW"
-        elif "reserva no rodante suplementaria" in clean_col:
-            column_mapping[col] = "ReservaNoRodanteSuplementaria_MW"
-
+    column_mapping = {
+        "Zona de Reserva": "ZonaReserva",
+        "Hora": "HoraOperacion",
+        "Reserva de Regulacion Secundaria (MW)": "ReservaRegulacionSecundaria_MW",
+        "Reserva Rodante de 10 minutos (MW)": "ReservaRodante10Min_MW",
+        "Reserva de 10 minutos (MW)": "Reserva10Min_MW",
+        "Reserva Suplementaria (MW)": "ReservaSuplementaria_MW",
+    }
     df_renamed = df.rename(columns=column_mapping)
     return df_renamed
 
 
 def process_csv_file(file_path: str) -> List[Dict]:
     """
-    Processes a single AsignacionPorParticipanteMercado CSV file and returns a list of dictionaries with the target structure.
+    Processes a single ServiciosConexosPorZonaDeReserva CSV file and returns a list of dictionaries with the target structure.
     """
     filename = os.path.basename(file_path)
 
@@ -86,7 +72,7 @@ def process_csv_file(file_path: str) -> List[Dict]:
     temp_df = pd.DataFrame([line.split(",") for line in lines if line][:25])
 
     # Find the line with the headers for AsignacionPorParticipanteMercado
-    header_line_idx = find_header_row(temp_df, "Participante", "Hora")
+    header_line_idx = find_header_row(temp_df, "Zona de Reserva", "Hora")
     logging.info(f"Header line index: {header_line_idx}")
 
     if header_line_idx == -1:
@@ -124,26 +110,20 @@ def process_csv_file(file_path: str) -> List[Dict]:
         try:
             record = {
                 "FechaOperacion": fecha_operacion,
-                "Participante": str(row.get("Participante", "")).strip(),
+                "ZonaReserva": str(row.get("ZonaReserva", "")).strip(),
                 "HoraOperacion": int(float(str(row.get("HoraOperacion", 0)))),
                 "Sistema": sistema,
-                "CantidadTotalEnergiaAsignada_MWh": float(
-                    str(row.get("CantidadTotalEnergiaAsignada_MWh", 0)).replace(",", "")
-                ),
-                "ReservaRegulacion_MW": float(
-                    str(row.get("ReservaRegulacion_MW", 0)).replace(",", "")
+                "ReservaRegulacionSecundaria_MW": float(
+                    str(row.get("ReservaRegulacionSecundaria_MW", 0)).replace(",", "")
                 ),
                 "ReservaRodante10Min_MW": float(
                     str(row.get("ReservaRodante10Min_MW", 0)).replace(",", "")
                 ),
-                "ReservaNoRodante10Min_MW": float(
-                    str(row.get("ReservaNoRodante10Min_MW", 0)).replace(",", "")
+                "Reserva10Min_MW": float(
+                    str(row.get("Reserva10Min_MW", 0)).replace(",", "")
                 ),
-                "ReservaRodanteSuplementaria_MW": float(
-                    str(row.get("ReservaRodanteSuplementaria_MW", 0)).replace(",", "")
-                ),
-                "ReservaNoRodanteSuplementaria_MW": float(
-                    str(row.get("ReservaNoRodanteSuplementaria_MW", 0)).replace(",", "")
+                "ReservaSuplementaria_MW": float(
+                    str(row.get("ReservaSuplementaria_MW", 0)).replace(",", "")
                 ),
             }
             result.append(record)
