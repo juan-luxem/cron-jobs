@@ -51,10 +51,10 @@ if __name__ == "__main__":
     # scheduler.add_job(
     #     demanda.get_demanda,
     #     "cron",
-    #     day_of_week="*", # every day"
+    #     day_of_week="*",  # every day"
     #     hour="9-23",
-    #     minute="15,35,55" #
-    #    )
+    #     minute="15,44,55",  #
+    # )
 
     # Demanda real balance
     # Run this script every day at 03:25 PM
@@ -72,8 +72,8 @@ if __name__ == "__main__":
         pml.get_pml_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="0",  # 06:00
+        hour="8",
+        minute="2",  # 06:00
     )
 
     # PML MTR
@@ -82,8 +82,8 @@ if __name__ == "__main__":
         pml.get_pml_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="06",
-        minute="5",  # 06:05
+        hour="8",
+        minute="6",  # 06:05
     )
 
     # Servicios Conexos MDA
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         servicios_conexos.get_servicios_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="10",  # 06:10
     )
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         servicios_conexos.get_servicios_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="15",  # 06:15
     )
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         generacion_gi_ofertada.get_generacion_gi_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="20",  # 06:20
     )
     # Ofertas del GI - Programa de Generación MTR
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         generacion_gi_ofertada.get_generacion_gi_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="25",  # 06:25
     )
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         generacion_ndso_ofertada.get_generacion_ndso_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="30",  # 06:30
     )
 
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         generacion_ndso_ofertada.get_generacion_ndso_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="35",  # 06:35
     )
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         generacion_idr_ofertada.get_generacion_idr_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="40",  # 06:40
     )
 
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         generacion_idr_ofertada.get_generacion_idr_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="45",  # 06:45
     )
     # Ofertas de Venta – Hidroeléctricas MDA
@@ -170,7 +170,7 @@ if __name__ == "__main__":
         generacion_hidro_ofertada.get_generacion_hidro_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="50",  # 06:50
     )
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         generacion_hidro_ofertada.get_generacion_hidro_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="53",  # 06:53
     )
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
         generacion_ofertada.get_generacion_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="55",  # 06:55
     )
 
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         generacion_ofertada.get_generacion_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="58",  # 06:58
     )
 
