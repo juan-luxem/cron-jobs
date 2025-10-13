@@ -1,33 +1,50 @@
 import re
 import logging
 
-def extract_fecha_operacion_from_filename(filename: str, index: int = 3) -> str:
+def extract_fecha_operacion_from_filename(filename: str, index: int = 3, word: str = None) -> str | None:
     """
     Extracts the fecha_operacion from the filename.
-    The date is always 2 words after the Sistema (SIN, BCS, BCA).
+    The date is always a certain number of positions after the Sistema (SIN, BCS, BCA) or a specified word.
+    
+    Args:
+        filename: The filename to extract date from
+        index: Number of positions after the reference word to find the date
+        word: Optional specific word to look for instead of Sistema words
     
     Examples:
-    - "PreciosMargLocales SIN MDA Dia 2025-09-08 v2025..." -> "2025-09-08"
-    - "PreciosMargLocales BCA MTR_Expost Dia 2025-09-04 v2025..." -> "2025-09-04"
-    - "PreciosServiciosConexos BCA MDA Dia 2025-09-08 v2025..." -> "2025-09-08"
+    - "PreciosMargLocales SIN MDA Dia 2025-09-08 v2025..." -> "2025-09-08" (default behavior)
+    - "Salidas En Adelanto SEN Dia 2025-10-13 v2025..." -> "2025-10-13" (with word="Dia", index=1)
     """
     try:
         # Split filename into words
         words = filename.split()
         
-        # Find the Sistema position
-        sistema_index = -1
-        for i, word in enumerate(words):
-            if word in ['SIN', 'BCS', 'BCA']:
-                sistema_index = i
-                break
+        # Find the reference word position
+        reference_index = -1
         
-        if sistema_index == -1:
-            logging.error(f"Could not find Sistema in filename: {filename}")
-            return None
+        if word:
+            # Look for the specific word
+            for i, w in enumerate(words):
+                if w == word:
+                    reference_index = i
+                    break
             
-        # Date should be 3 positions after Sistema (Sistema + 2 words + date)
-        date_index = sistema_index + index
+            if reference_index == -1:
+                logging.error(f"Could not find word '{word}' in filename: {filename}")
+                return None
+        else:
+            # Find the Sistema position (default behavior)
+            for i, w in enumerate(words):
+                if w in ['SIN', 'BCS', 'BCA']:
+                    reference_index = i
+                    break
+            
+            if reference_index == -1:
+                logging.error(f"Could not find Sistema in filename: {filename}")
+                return None
+            
+        # Date should be at the specified index after the reference word
+        date_index = reference_index + index
 
         if date_index < len(words):
             # Extract date and validate format
