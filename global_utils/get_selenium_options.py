@@ -1,6 +1,6 @@
 from selenium.webdriver.chrome.options import Options
 
-def get_selenium_options(headless: bool, download_folder: str) -> Options:
+def get_selenium_options(headless: bool, download_folder: str | None) -> Options:
     """
     Get Chrome WebDriver options.
 

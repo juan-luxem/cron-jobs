@@ -8,26 +8,17 @@ from selenium.webdriver.chrome.options import Options  # Better import style
 from selenium.webdriver.chrome.service import Service  # Added
 import time
 import os
-from dotenv import load_dotenv
 from bs4 import BeautifulSoup
-from .utils import send_telegram_message, send_telegram_image  # Assuming these are defined in utils.py
 import logging
+from global_utils.send_telegram_message import send_telegram_message, send_telegram_image
+from global_utils.get_selenium_options import get_selenium_options
+from config import ENV
 
 # --- Constants ---
 MAX_RETRIES = 2 # Total attempts = MAX_RETRIES + 1
 # RETRY_DELAY_SECONDS = 15 # Wait 15 seconds between retries
 
 THRESHOLD_PERCENTAGE = 50.0
-
-# --- WebDriver Setup (ensure chromedriver or geckodriver is in your PATH or specify its location) ---
-# Example for Chrome:
-chrome_options = Options()
-chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-chrome_options.add_argument("--headless=new")  # Use =new for modern Chrome
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--disable-gpu")  # Often helpful in headless
-# chrome_options.add_argument("--window-size=1280,720")  # Define virtual window size
 
 def parse_percentage(percentage_str):
     """Helper function to parse 'XX.XX%' strings to float."""
@@ -41,12 +32,14 @@ def parse_percentage(percentage_str):
     return None
 
 def get_reas_value():
-    load_dotenv()
-    bot_token = os.getenv("TELEGRAM_BOT_GAS_NOTIFIER_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    mau_credentials_password = os.getenv("MAU_CREDENTIALS_PASSWORD")
-    mau_username = os.getenv("MAU_USERNAME")
-    mau_password = os.getenv("MAU_PASSWORD")
+
+    # API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
+    mau_credentials_password = ENV.MAU_CREDENTIALS_PASSWORD.get_secret_value()
+    mau_username = ENV.MAU_USERNAME
+    mau_password = ENV.MAU_PASSWORD.get_secret_value()
+
     if not all([mau_credentials_password, mau_username, mau_password]):
         logging.error("Missing environment variables")
         return
@@ -58,13 +51,13 @@ def get_reas_value():
     files_dict = {file: os.path.join(credentials_path, file) for file in files}
 
     mau_cer = files_dict.get("mau.cer")
-    if not os.path.exists(mau_cer):
+    if not os.path.exists(str(mau_cer)):
         # print("Files not found in credentials path")
         logging.error("Files not found in credentials path")
         return
 
     mau_key = files_dict.get("Claveprivada_Mau.key")
-    if not os.path.exists(mau_key):
+    if not os.path.exists(str(mau_key)):
         logging.error("Key files not found in credentials path")
         return
 
@@ -153,6 +146,8 @@ def get_reas_value():
         
 def get_rea_table(file_cer, file_key, file_credentials_password, username, password):
     driver = None
+    chrome_options = get_selenium_options(headless=True, download_folder=None)
+
     try:
         # Initialize the WebDriver
         driver = webdriver.Chrome(
@@ -219,12 +214,12 @@ def get_rea_table(file_cer, file_key, file_credentials_password, username, passw
         liq_nav_elment.click()
         time.sleep(2)  # Wait for the menu to load
 
-        try:
-            warranty_nav_element = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, 'DropdownB190')))
-        except:
-            warranty_nav_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'DropdownC9')))
+        # try:
+        warranty_nav_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, 'DropdownB170')))
+        # except:
+        #     warranty_nav_element = WebDriverWait(driver, 10).until(
+        #     EC.presence_of_element_located((By.ID, 'DropdownC9')))
 
         warranty_nav_element.click()
         time.sleep(2)  # Wait for the menu to load

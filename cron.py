@@ -20,6 +20,8 @@ from cantidades_asignadas_servicios_conexos import (
 from capacidad_transferencia import capacidad_transferencia
 from asignacion_por_participante_mercado import asignacion_por_participante_mercado
 from servicios_conexos_por_zona_reserva import servicios_conexos_por_zona_reserva
+from rea_service import rea
+from demanda import demanda
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -42,19 +44,22 @@ if __name__ == "__main__":
         level=logging.INFO,
     )
 
+    # Run REA service every day from 8:00 AM to 11:55 PM every day every 30 minutes
+    scheduler.add_job(rea.get_reas_value, "cron", day_of_week="*", hour="8-23", minute="*/30")
+
     # NGI API
     # Run this script from monday to friday at 8:00 AM
     scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=8, minute=0)
 
     # Demanda tiempo real
     # Run this script every day from 8:00 AM to 11:55 PM
-    # scheduler.add_job(
-    #     demanda.get_demanda,
-    #     "cron",
-    #     day_of_week="*", # every day"
-    #     hour="9-23",
-    #     minute="15,35,55" #
-    #    )
+    scheduler.add_job(
+        demanda.get_demanda,
+        "cron",
+        day_of_week="*", # every day"
+        hour="9-23",
+        minute="15,35,55" #
+       )
 
     # Demanda real balance
     # Run this script every day at 03:25 PM
