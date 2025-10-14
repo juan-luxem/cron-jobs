@@ -3,7 +3,6 @@ import logging
 from typing import Dict, List
 import pandas as pd
 from global_utils import (send_data_in_chunks, find_header_row,clean_column_names,extract_fecha_operacion_from_row )
-
 from io import StringIO
 
 logging.basicConfig(level=logging.INFO)

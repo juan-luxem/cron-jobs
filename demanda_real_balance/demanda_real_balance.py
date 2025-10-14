@@ -39,7 +39,7 @@ def get_csv_file_id_from_last_release_date_row(driver, base_date_str, day_to_sub
         date_input_element.send_keys(target_date_str_to_send)
         date_input_element.send_keys(Keys.ENTER) # Submit the date
 
-        time.sleep(3)  # Wait for the table to load
+        time.sleep(10)  # Wait for the table to load
 
         xpath = (
             f"//table[@id='ctl00_ContentPlaceHolder1_GridRadPorBalance_ctl00']/tbody/tr"
@@ -47,7 +47,11 @@ def get_csv_file_id_from_last_release_date_row(driver, base_date_str, day_to_sub
             f"[last()]/td//input[@type='image' and contains(@src, 'imgCsv.png')]"
         )
 
-        csv_input = driver.find_element(By.XPATH, xpath)
+        # csv_input = driver.find_element(By.XPATH, xpath)
+        csv_input = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, xpath))
+        )
+        print(csv_input)
         logging.info(f"Found CSV input ID in last row: {csv_input.get_attribute('id')} for date {target_date_str_to_send}")
         return csv_input.get_attribute('id')
     except Exception as e:
@@ -70,7 +74,7 @@ def get_demanda_real_balance():
         logging.error("Files not found in download path")
         return
 
-    chrome_options = get_selenium_options(headless=False, download_folder=download_folder)
+    chrome_options = get_selenium_options(headless=True, download_folder=download_folder)
     driver = None
 
     try:

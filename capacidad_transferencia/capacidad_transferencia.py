@@ -10,6 +10,7 @@ from selenium.webdriver.chrome.service import Service  # Added
 import time
 from dotenv import load_dotenv
 from capacidad_transferencia.get_capacidad_transferencia_data import get_capacidad_transferencia_data
+from global_utils import get_selenium_options
 
 
 def get_capacidad_transferencia():
@@ -24,21 +25,7 @@ def get_capacidad_transferencia():
         logging.error("Files not found in credentials path")
         return
 
-    chrome_options = Options()
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_argument("--headless=new")  # Use =new for modern Chrome
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")  # Often helpful in headless
-    # chrome_options.add_argument("--window-size=1280,720")  # Define virtual window size
-    # Download folder
-    prefs = {
-        "download.default_directory": download_folder,
-        "download.prompt_for_download": False,
-        "download.directory_upgrade": True,
-        "safebrowsing.enabled": True,
-    }
-    chrome_options.add_experimental_option("prefs", prefs)
+    chrome_options = get_selenium_options(headless=True, download_folder=download_folder)
     driver = None
     try:
         # Initialize the Chrome driver

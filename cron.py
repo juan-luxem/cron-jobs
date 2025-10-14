@@ -21,7 +21,9 @@ from capacidad_transferencia import capacidad_transferencia
 from asignacion_por_participante_mercado import asignacion_por_participante_mercado
 from servicios_conexos_por_zona_reserva import servicios_conexos_por_zona_reserva
 from rea_service import rea
-from demanda import demanda
+# from demanda import demanda
+from salidas_adelanto import run_salidas_adelanto
+from salidas_ocurridas import run_salidas_ocurridas
 
 # Ensure the logs directory exists
 os.makedirs("./logs", exist_ok=True)
@@ -45,6 +47,7 @@ if __name__ == "__main__":
     )
 
     # Run REA service every day from 8:00 AM to 11:55 PM every day every 30 minutes
+    # Checked ✅
     scheduler.add_job(rea.get_reas_value, "cron", day_of_week="*", hour="8-23", minute="*/30")
 
     # NGI API
@@ -53,26 +56,36 @@ if __name__ == "__main__":
 
     # Demanda tiempo real
     # Run this script every day from 8:00 AM to 11:55 PM
-    scheduler.add_job(
-        demanda.get_demanda,
-        "cron",
-        day_of_week="*", # every day"
-        hour="9-23",
-        minute="15,35,55" #
-       )
+    # scheduler.add_job(
+    #     demanda.get_demanda,
+    #     "cron",
+    #     day_of_week="*", # every day"
+    #     hour="9-23",
+    #     minute="15,35,55" #
+    #    )
+
+    # Run salidas adelanto every day at 5:30 AM
+    # Checked ✅
+    scheduler.add_job(run_salidas_adelanto.run_salidas_adelanto, "cron", day_of_week="*", hour="5", minute="30")
+
+    # Run salidas ocurridas every day at 5:40 AM
+    # Checked ✅
+    scheduler.add_job(run_salidas_ocurridas.run_salidas_ocurridas, "cron", day_of_week="*", hour="5", minute="40")
 
     # Demanda real balance
-    # Run this script every day at 03:25 PM
+    # Run this script every day at 04:25 PM
+    # Checked ✅
     scheduler.add_job(
         demanda_real_balance.get_demanda_real_balance,
         "cron",
         day_of_week="*",  # every day"
-        hour="15",
-        minute="25",  # 15:25
+        hour="16",
+        minute="25",  # 16:25
     )
 
     # PML MDA
     # Run this script every day at 06:00 AM
+    # Checked ✅
     scheduler.add_job(
         pml.get_pml_mda,
         "cron",
@@ -83,51 +96,56 @@ if __name__ == "__main__":
 
     # PML MTR
     # Run this script every day at 06:05 AM
+    # Checked ✅
     scheduler.add_job(
         pml.get_pml_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="06",
+        hour="6",
         minute="5",  # 06:05
     )
 
     # Servicios Conexos MDA
     # Run this script every day at 06:10 AM
+    # Check this endpoint ❌
     scheduler.add_job(
         servicios_conexos.get_servicios_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="10",  # 06:10
+        hour="12",
+        minute="55",  # 06:10
     )
 
     # Servicios Conexos MTR
     # Run this script every day at 06:15 AM
+    # Check this endpoint ❌
     scheduler.add_job(
         servicios_conexos.get_servicios_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="15",  # 06:15
+        hour="12",
+        minute="58",  # 06:15
     )
 
     # Ofertas del GI - Programa de Generación MDA
     # Run this script every day at 06:20 AM
+    # Check this endpoint ❌
     scheduler.add_job(
         generacion_gi_ofertada.get_generacion_gi_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="20",  # 06:20
+        hour="13",
+        minute="0",  # 06:20
     )
     # Ofertas del GI - Programa de Generación MTR
     # Run this script every day at 06:25 AM
+    # Check this endpoint ❌
     scheduler.add_job(
         generacion_gi_ofertada.get_generacion_gi_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="25",  # 06:25
+        hour="13",
+        minute="2",  # 06:25
     )
 
     # Ofertas de Venta – No Despachable MDA
@@ -136,8 +154,8 @@ if __name__ == "__main__":
         generacion_ndso_ofertada.get_generacion_ndso_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="30",  # 06:30
+        hour="10",
+        minute="43",  # 06:30
     )
 
     # Ofertas de Venta – Despachable MTR
@@ -211,12 +229,14 @@ if __name__ == "__main__":
 
     # Capacidad de Transferencia MDA
     # Run this script every day at 9:50 AM
+    # Check this endpoint ❌
+    # Checked ✅
     scheduler.add_job(
         capacidad_transferencia.get_capacidad_transferencia,
         "cron",
         day_of_week="*",  # every day"
-        hour="9",
-        minute="50",  # 09:50
+        hour="11",
+        minute="3",  # 09:50
     )
 
     # Cantidades Asignadas Servicios Conexos MDA
@@ -225,8 +245,8 @@ if __name__ == "__main__":
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="20",
-        minute="0",  # 20:00
+        hour="11",
+        minute="11",  # 20:00
     )
 
     # Cantidades Asignadas Servicios Conexos MTR
@@ -235,8 +255,8 @@ if __name__ == "__main__":
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="20",
-        minute="05",  # 20:05
+        hour="11",
+        minute="13",  # 20:05
     )
 
     # Asignación por Participante de Mercado
