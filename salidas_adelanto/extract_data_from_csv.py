@@ -2,7 +2,7 @@ import os
 import logging
 from typing import Dict, List
 import pandas as pd
-from global_utils import (send_data_in_chunks, find_header_row,clean_column_names,extract_fecha_operacion_from_filename )
+from global_utils import (send_data_in_chunks, find_header_row,clean_column_names,extract_fecha_operacion_from_row )
 
 from io import StringIO
 
@@ -36,16 +36,6 @@ def process_csv_file(file_path: str) -> List[Dict]:
     """
     filename = os.path.basename(file_path)
     
-    # Extract fecha_publicacion from filename (from "v2025 10 12" part)
-    fecha_publicacion = extract_fecha_operacion_from_filename(filename, index=2, word="SEN")
-    
-    if not fecha_publicacion:
-        logging.error(f"Could not extract FechaPublicacion from filename: {filename}")
-        return []
-
-    logging.info(f"Processing file: {filename}")
-    logging.info(f"FechaPublicacion: {fecha_publicacion}")
-
     # Read CSV file with error handling for mixed column counts
     try:
         # First, read the file line by line to handle mixed structures
@@ -68,6 +58,17 @@ def process_csv_file(file_path: str) -> List[Dict]:
     # Find the line with the headers
     header_line_idx = find_header_row(temp_df, "Tipo de Elemento", "Tecnologia - Tension")
     logging.info(f"Header line index: {header_line_idx}")
+
+    # Extract fecha_publicacion from filename (from "v2025 10 12" part)
+    fecha_publicacion = extract_fecha_operacion_from_row(str(temp_df), "Fecha de Publicacion:")
+    
+    if not fecha_publicacion:
+        logging.error(f"Could not extract FechaPublicacion from filename: {filename}")
+        return []
+
+    logging.info(f"Processing file: {filename}")
+    logging.info(f"FechaPublicacion: {fecha_publicacion}")
+
 
     if header_line_idx == -1:
         logging.warning(f"Could not find header line in file: {filename}")
