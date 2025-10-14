@@ -4,12 +4,11 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager  # Added
-from selenium.webdriver.chrome.options import Options  # Better import style
-from selenium.webdriver.chrome.service import Service  # Added
 import time
 from dotenv import load_dotenv
-from capacidad_transferencia.get_capacidad_transferencia_data import get_capacidad_transferencia_data
+from capacidad_transferencia.get_capacidad_transferencia_data import (
+    get_capacidad_transferencia_data,
+)
 from global_utils import get_selenium_options
 
 
@@ -25,29 +24,37 @@ def get_capacidad_transferencia():
         logging.error("Files not found in credentials path")
         return
 
-    chrome_options = get_selenium_options(headless=True, download_folder=download_folder)
+    chrome_options = get_selenium_options(
+        headless=False, download_folder=download_folder
+    )
     driver = None
     try:
         # Initialize the Chrome driver
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        ## If face with version error, uncomment the next line
+        # service = Service(ChromeDriverManager().install())
+        # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        # And comment the next line
+        driver = webdriver.Chrome(options=chrome_options)
         driver.get(url)  # Replace with the actual URL
 
         # Wait for the element to be present
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_gvReportes_imgBtnCSV_0"))  # Replace with actual ID
+            EC.presence_of_element_located(
+                (By.ID, "ContentPlaceHolder1_gvReportes_imgBtnCSV_0")
+            )  # Replace with actual ID
         ).click()
         logging.info("CSV file downloaded successfully.")
 
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlSistema"))
         ).click()
-        
+
         time.sleep(2)  # Wait for the dropdown to be populated
         try:
-
             WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlSistema"))
+                EC.presence_of_element_located(
+                    (By.ID, "ContentPlaceHolder1_ddlSistema")
+                )
             ).click()
 
             # Select the BCA option from the dropdown
@@ -61,11 +68,13 @@ def get_capacidad_transferencia():
 
             time.sleep(5)  # Wait for the page to load
             WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_gvReportes_imgBtnCSV_0"))
+                EC.presence_of_element_located(
+                    (By.ID, "ContentPlaceHolder1_gvReportes_imgBtnCSV_0")
+                )
             ).click()
             time.sleep(5)  # Wait for the download to complete
             get_capacidad_transferencia_data(download_folder)
-            
+
         except Exception as e:
             logging.error(f"Error clicking BCA option: {e}")
             return
@@ -86,8 +95,9 @@ def get_capacidad_transferencia():
                         logging.info(f"Removed file: {file_path}")
             else:
                 logging.info("No files to remove.")
-        
+
         if driver:
             # Wait for the download to complete
             driver.quit()
             logging.info("Driver closed successfully.")
+

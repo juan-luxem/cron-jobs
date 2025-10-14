@@ -185,6 +185,17 @@ if __name__ == "__main__":
         minute="28",  # 06:28
     )
 
+    # Capacidad de Transferencia MDA
+    # Run this script every day at 9:50 AM
+    # Checked ✅
+    scheduler.add_job(
+        capacidad_transferencia.get_capacidad_transferencia,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="9",
+        minute="50",  # 09:50
+    )
+
     # Ofertas de Venta – Recursos Interm Despachables MTR
     # Run this script every day at 06:30 AM
     # Checked ✅
@@ -237,17 +248,6 @@ if __name__ == "__main__":
         day_of_week="*",  # every day"
         hour="15",
         minute="38",  # 06:38
-    )
-
-    # Capacidad de Transferencia MDA
-    # Run this script every day at 9:50 AM
-    # Check this endpoint ❌
-    scheduler.add_job(
-        capacidad_transferencia.get_capacidad_transferencia,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="16",
-        minute="29",  # 09:50
     )
 
     # Demanda real balance
