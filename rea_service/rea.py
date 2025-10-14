@@ -4,35 +4,43 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager  # Added
-from selenium.webdriver.chrome.options import Options  # Better import style
 from selenium.webdriver.chrome.service import Service  # Added
 import time
 import os
 from bs4 import BeautifulSoup
 import logging
-from global_utils.send_telegram_message import send_telegram_message, send_telegram_image
+from global_utils.send_telegram_message import (
+    send_telegram_message,
+    send_telegram_image,
+)
 from global_utils.get_selenium_options import get_selenium_options
 from config import ENV
 
 # --- Constants ---
-MAX_RETRIES = 2 # Total attempts = MAX_RETRIES + 1
+MAX_RETRIES = 2  # Total attempts = MAX_RETRIES + 1
 # RETRY_DELAY_SECONDS = 15 # Wait 15 seconds between retries
 
 THRESHOLD_PERCENTAGE = 50.0
 
+
 def parse_percentage(percentage_str):
     """Helper function to parse 'XX.XX%' strings to float."""
-    if isinstance(percentage_str, str) and percentage_str.endswith('%'):
+    if isinstance(percentage_str, str) and percentage_str.endswith("%"):
         try:
             # Remove '$', ',', '%' and convert to float
-            cleaned_str = percentage_str.replace('$', '').replace(',', '').replace('%', '').strip()
+            cleaned_str = (
+                percentage_str.replace("$", "")
+                .replace(",", "")
+                .replace("%", "")
+                .strip()
+            )
             return float(cleaned_str)
         except ValueError:
-            return None # Handle cases where conversion fails
+            return None  # Handle cases where conversion fails
     return None
 
-def get_reas_value():
 
+def get_reas_value():
     # API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
     bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
     chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
@@ -61,7 +69,7 @@ def get_reas_value():
         logging.error("Key files not found in credentials path")
         return
 
-# --- Define Entities to Process ---
+    # --- Define Entities to Process ---
     entities = [
         {
             "name": "Luxem",
@@ -80,7 +88,7 @@ def get_reas_value():
             entity["key"],
             entity["cred_pw"],
             entity["user"],
-            entity["pw"]
+            entity["pw"],
         )
 
         if isinstance(result, list) and len(result) > 0:
@@ -89,7 +97,7 @@ def get_reas_value():
                 send_telegram_message(
                     bot_token,
                     chat_id,
-                    f"Error: REA value for {entity_name} is not a string."
+                    f"Error: REA value for {entity_name} is not a string.",
                 )
                 continue
             rea_mgp = parse_percentage(rea_mgp)
@@ -97,7 +105,7 @@ def get_reas_value():
                 send_telegram_message(
                     bot_token,
                     chat_id,
-                    f"Error: No es posible parsear el valor de la REAvsMGP para {entity_name}."
+                    f"Error: No es posible parsear el valor de la REAvsMGP para {entity_name}.",
                     # f"Error: Unable to parse REA value for {entity_name}."
                 )
                 continue
@@ -107,7 +115,7 @@ def get_reas_value():
                 if isinstance(item, dict):
                     for key, value in item.items():
                         # Special handling for 'CLAVE PART' to match your desired output 'PART'
-                        if key == 'CLAVE PART':
+                        if key == "CLAVE PART":
                             output_string += f"PART: {value}\n"
                         else:
                             output_string += f"{key}: {value}\n"
@@ -116,14 +124,14 @@ def get_reas_value():
                 send_telegram_message(
                     bot_token,
                     chat_id,
-                    f"Peligro: Valor de REA para {entity_name} es mayor {THRESHOLD_PERCENTAGE}%: {rea_mgp}%, \n{output_string}"
+                    f"Peligro: Valor de REA para {entity_name} es mayor {THRESHOLD_PERCENTAGE}%: {rea_mgp}%, \n{output_string}",
                 )
 
         if isinstance(result, list) and len(result) == 0:
             send_telegram_message(
                 bot_token,
                 chat_id,
-                f"Error: No se encontraron datos para {entity_name}."
+                f"Error: No se encontraron datos para {entity_name}.",
             )
             continue
 
@@ -135,7 +143,7 @@ def get_reas_value():
                         bot_token,
                         chat_id,
                         result,
-                        caption=f"Error: {entity_name} - {result}"
+                        caption=f"Error: {entity_name} - {result}",
                     )
                     os.remove(result)
                     logging.info(f"Screenshot at {result} has been removed.")
@@ -143,7 +151,8 @@ def get_reas_value():
                     logging.error(f"Failed to remove screenshot: {e}")
             else:
                 logging.error(f"Screenshot at {result} does not exist.")
-        
+
+
 def get_rea_table(file_cer, file_key, file_credentials_password, username, password):
     driver = None
     chrome_options = get_selenium_options(headless=True, download_folder=None)
@@ -156,20 +165,28 @@ def get_rea_table(file_cer, file_key, file_credentials_password, username, passw
             ),  # Automatically handles driver
             options=chrome_options,
         )
-        original_window = driver.current_window_handle # Get the handle of the first tab
+        original_window = (
+            driver.current_window_handle
+        )  # Get the handle of the first tab
 
         # 1. Navigate to the login page
-        login_url = "https://memsim.cenace.gob.mx/Produccion/Participantes/LOGIN/" # Replace with the actual URL
+        login_url = "https://memsim.cenace.gob.mx/Produccion/Participantes/LOGIN/"  # Replace with the actual URL
 
         driver.get(login_url)
         e_key_input_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "uploadCer"))  # Wait for the body to load
-        ) 
+            EC.presence_of_element_located(
+                (By.ID, "uploadCer")
+            )  # Wait for the body to load
+        )
         cert_input_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "uploadKey")) # Or By.NAME, By.XPATH, etc.
+            EC.presence_of_element_located(
+                (By.ID, "uploadKey")
+            )  # Or By.NAME, By.XPATH, etc.
         )
         password_key_input_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "txtPrivateKey")) # Or By.NAME, By.XPATH, etc.
+            EC.presence_of_element_located(
+                (By.ID, "txtPrivateKey")
+            )  # Or By.NAME, By.XPATH, etc.
         )
 
         login_button = WebDriverWait(driver, 10).until(
@@ -208,15 +225,16 @@ def get_rea_table(file_cer, file_key, file_credentials_password, username, passw
         )
         area_menu_element.click()
         time.sleep(2)  # Wait for the menu to load
-        liq_nav_elment= WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'DropdownB9'))
+        liq_nav_elment = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "DropdownB9"))
         )
         liq_nav_elment.click()
         time.sleep(2)  # Wait for the menu to load
 
         # try:
         warranty_nav_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'DropdownB170')))
+            EC.presence_of_element_located((By.ID, "DropdownB170"))
+        )
         # except:
         #     warranty_nav_element = WebDriverWait(driver, 10).until(
         #     EC.presence_of_element_located((By.ID, 'DropdownC9')))
@@ -224,10 +242,13 @@ def get_rea_table(file_cer, file_key, file_credentials_password, username, passw
         warranty_nav_element.click()
         time.sleep(2)  # Wait for the menu to load
         rea_nav_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'S12')))
+            EC.presence_of_element_located((By.ID, "S12"))
+        )
         rea_nav_element.click()
-         # ---- HANDLE THE NEW TAB ----
-        WebDriverWait(driver, 10).until(EC.number_of_windows_to_be(2)) # Wait until 2 windows are open
+        # ---- HANDLE THE NEW TAB ----
+        WebDriverWait(driver, 10).until(
+            EC.number_of_windows_to_be(2)
+        )  # Wait until 2 windows are open
 
         all_windows = driver.window_handles
         new_window = [window for window in all_windows if window != original_window][0]
@@ -240,7 +261,9 @@ def get_rea_table(file_cer, file_key, file_credentials_password, username, passw
         logging.info(f"Current URL after switching to new tab: {current_url}")
 
         WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.ID, "tablaResultado")) # Wait for the table you want to scrape
+            EC.presence_of_element_located(
+                (By.ID, "tablaResultado")
+            )  # Wait for the table you want to scrape
         )
         logging.info("Successfully logged in!")
 
@@ -253,40 +276,53 @@ def get_rea_table(file_cer, file_key, file_credentials_password, username, passw
         table_html = table.get_attribute("outerHTML")
 
         if table_html:
-            soup = BeautifulSoup(table_html, 'html.parser')
+            soup = BeautifulSoup(table_html, "html.parser")
 
             headers = []
             # Find the table header row
-            header_row = soup.find('thead').find('tr')
+            header_row = soup.find("thead").find("tr")
             if header_row:
-                for th in header_row.find_all('th'):
-                    headers.append(th.get_text(strip=True)) # strip=True removes extra whitespace
+                for th in header_row.find_all("th"):
+                    headers.append(
+                        th.get_text(strip=True)
+                    )  # strip=True removes extra whitespace
 
             table_data = []
             # Find all data rows in the table body
-            body_rows = soup.find('tbody').find_all('tr')
+            body_rows = soup.find("tbody").find_all("tr")
             for row in body_rows:
                 row_dict = {}
-                cells = row.find_all('td')
+                cells = row.find_all("td")
                 for i, cell in enumerate(cells):
-                    if i < len(headers): # Ensure we don't go out of bounds for headers
+                    if i < len(headers):  # Ensure we don't go out of bounds for headers
                         cell_text = cell.get_text(strip=True)
 
-                        if headers[i] == "Estatus": # Special handling for 'Estatus' if needed
-                            status_div = cell.find('div', class_=["semaforoVerde", "semaforoRojo", "semaforoAmarillo"]) # Add other possible classes
+                        if (
+                            headers[i] == "Estatus"
+                        ):  # Special handling for 'Estatus' if needed
+                            status_div = cell.find(
+                                "div",
+                                class_=[
+                                    "semaforoVerde",
+                                    "semaforoRojo",
+                                    "semaforoAmarillo",
+                                ],
+                            )  # Add other possible classes
                             if status_div:
-                                if "semaforoVerde" in status_div.get('class', []):
-                                    cell_text = "Verde" # Or "OK", "Good", etc.
-                                elif "semaforoRojo" in status_div.get('class', []):
+                                if "semaforoVerde" in status_div.get("class", []):
+                                    cell_text = "Verde"  # Or "OK", "Good", etc.
+                                elif "semaforoRojo" in status_div.get("class", []):
                                     cell_text = "Rojo"
-                                elif "semaforoAmarillo" in status_div.get('class', []):
+                                elif "semaforoAmarillo" in status_div.get("class", []):
                                     cell_text = "Amarillo"
                                 # If cell_text is still empty from get_text and no specific div found, it remains empty
-                            elif not cell_text: # If get_text was empty and no specific div was found
-                                cell_text = "N/A" # Or some default
+                            elif (
+                                not cell_text
+                            ):  # If get_text was empty and no specific div was found
+                                cell_text = "N/A"  # Or some default
 
                         row_dict[headers[i]] = cell_text
-                if row_dict: # Ensure the row_dict is not empty (e.g. if a row had no <td> for some reason)
+                if row_dict:  # Ensure the row_dict is not empty (e.g. if a row had no <td> for some reason)
                     table_data.append(row_dict)
 
             return table_data
@@ -302,7 +338,9 @@ def get_rea_table(file_cer, file_key, file_credentials_password, username, passw
             screenshots_dir = "screenshots"
             os.makedirs(screenshots_dir, exist_ok=True)
             timestamp = time.strftime("%Y%m%d-%H%M%S")
-            screenshot_path = os.path.join(screenshots_dir, f"error_screenshot_{timestamp}.png")
+            screenshot_path = os.path.join(
+                screenshots_dir, f"error_screenshot_{timestamp}.png"
+            )
             try:
                 driver.save_screenshot(screenshot_path)
                 logging.info(f"Screenshot saved to {screenshot_path}")

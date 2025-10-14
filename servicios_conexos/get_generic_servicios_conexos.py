@@ -11,11 +11,13 @@ from global_utils.get_selenium_options import get_selenium_options
 # --- Logger Setup ---
 # This sets up a simple logger to print info and error messages to the console.
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-def get_servicios_conexos_generic(market_type: str, systems: list = ['SIN', 'BCS', 'BCA']):
+
+def get_servicios_conexos_generic(
+    market_type: str, systems: list = ["SIN", "BCS", "BCA"]
+):
     """
     Generic function to download Servicios Conexos data from CENACE for any market type.
 
@@ -26,15 +28,15 @@ def get_servicios_conexos_generic(market_type: str, systems: list = ['SIN', 'BCS
     # --- Configuration ---
     urls = {
         "MDA": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMDA.aspx",
-        "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMTR.aspx"
+        "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMTR.aspx",
     }
-    
+
     if market_type not in urls:
         logging.error(f"Invalid market type: {market_type}. Use 'MDA' or 'MTR'.")
         return
 
     url = urls[market_type]
-    
+
     # --- Setup Download Folder ---
     cwd = os.getcwd()
     download_folder = os.path.join(cwd, "download_folder")
@@ -52,52 +54,72 @@ def get_servicios_conexos_generic(market_type: str, systems: list = ['SIN', 'BCS
         driver.get(url)
         # First, select "Servicios conexos" from the first dropdown
         try:
-            report_select_element = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlReporte")))
+            report_select_element = wait.until(
+                EC.presence_of_element_located(
+                    (By.ID, "ContentPlaceHolder1_ddlReporte")
+                )
+            )
             report_select = Select(report_select_element)
             if market_type == "MDA":
-                report_select.select_by_value("361,324") # Precios de Servicios Conexos MDA
+                report_select.select_by_value(
+                    "361,324"
+                )  # Precios de Servicios Conexos MDA
             else:
-                report_select.select_by_value("364,327")  # Precios de Servicios Conexos MTR
-            logging.info("Selected 'Ofertas del GI - Programa de Generación' option")
-            
+                report_select.select_by_value(
+                    "364,327"
+                )  # Precios de Servicios Conexos MTR
+            logging.info("Selected 'Precios Servicios Conexos' option")
+
             # Wait for postback to complete and page to load
             time.sleep(5)
-            
+
         except Exception as e:
             logging.error(f"Error selecting report type: {e}")
             return None
 
         # --- Iterate Through Each System ---
         for _, system in enumerate(systems):
-                try:
-                    # Find and select the system in the second dropdown
-                    system_select_element = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlSistema")))
-                    #ContentPlaceHolder1_ddlSistema
-                    system_select = Select(system_select_element)
-                    system_select.select_by_value(system)
-                    logging.info(f"Selected {system} option")
-                    
-                    # Wait for postback to complete
-                    time.sleep(3)
-                    
-                    # Click on the CSV download button
-                    csv_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@src='../imagenes/csv.svg']")))
-                    time.sleep(2)
+            try:
+                # Find and select the system in the second dropdown
+                system_select_element = wait.until(
+                    EC.presence_of_element_located(
+                        (By.ID, "ContentPlaceHolder1_ddlSistema")
+                    )
+                )
+                # ContentPlaceHolder1_ddlSistema
+                system_select = Select(system_select_element)
+                system_select.select_by_value(system)
+                logging.info(f"Selected {system} option")
 
-                    csv_button.click()
-                    logging.info(f"Clicked CSV download button for {system}")
-                    
-                    # Wait for download to complete
-                    time.sleep(4)
-                    
-                except Exception as e:
-                    logging.error(f"Error processing system {system}: {e}")
-                    continue
+                # Wait for postback to complete
+                time.sleep(3)
+
+                # Click on the CSV download button
+                csv_button = wait.until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//input[@src='../imagenes/csv.svg']")
+                    )
+                )
+                time.sleep(2)
+
+                csv_button.click()
+                logging.info(f"Clicked CSV download button for {system}")
+
+                # Wait for download to complete
+                time.sleep(4)
+
+            except Exception as e:
+                logging.error(f"Error processing system {system}: {e}")
+                continue
 
     except TimeoutException:
-        logging.error(f"❌ A page element did not load in time. Could not complete the process for {url}")
+        logging.error(
+            f"❌ A page element did not load in time. Could not complete the process for {url}"
+        )
     except Exception as e:
-        logging.error(f"❌ An unexpected error occurred during the {market_type} process: {e}")
+        logging.error(
+            f"❌ An unexpected error occurred during the {market_type} process: {e}"
+        )
     finally:
         logging.info(f"🏁 Download process for {market_type} finished.")
         driver.quit()
