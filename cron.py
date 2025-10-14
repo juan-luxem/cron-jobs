@@ -59,10 +59,10 @@ if __name__ == "__main__":
     # scheduler.add_job(
     #     demanda.get_demanda,
     #     "cron",
-    #     day_of_week="*", # every day"
+    #     day_of_week="*",  # every day"
     #     hour="9-23",
-    #     minute="15,35,55" #
-    #    )
+    #     minute="15,44,55",  #
+    # )
 
     # Run salidas adelanto every day at 5:30 AM
     # Checked ✅
@@ -90,8 +90,8 @@ if __name__ == "__main__":
         pml.get_pml_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="0",  # 06:00
+        hour="8",
+        minute="2",  # 06:00
     )
 
     # PML MTR
@@ -164,7 +164,7 @@ if __name__ == "__main__":
         generacion_ndso_ofertada.get_generacion_ndso_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="35",  # 06:35
     )
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         generacion_idr_ofertada.get_generacion_idr_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="40",  # 06:40
     )
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
         generacion_idr_ofertada.get_generacion_idr_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="45",  # 06:45
     )
     # Ofertas de Venta – Hidroeléctricas MDA
@@ -193,7 +193,7 @@ if __name__ == "__main__":
         generacion_hidro_ofertada.get_generacion_hidro_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="50",  # 06:50
     )
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         generacion_hidro_ofertada.get_generacion_hidro_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="53",  # 06:53
     )
 
@@ -213,7 +213,7 @@ if __name__ == "__main__":
         generacion_ofertada.get_generacion_ofertada_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="55",  # 06:55
     )
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
         generacion_ofertada.get_generacion_ofertada_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
+        hour="8",
         minute="58",  # 06:58
     )
 

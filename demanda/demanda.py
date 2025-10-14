@@ -15,20 +15,36 @@ MAPEO_GERENCIAS = {
     9: "Peninsular",
 }
 
+
 def get_demanda():
     for gerencia in MAPEO_GERENCIAS:
         try:
-            logging.info(f"📊 Procesando gerencia: {MAPEO_GERENCIAS[gerencia]} (ID: {gerencia})")
-            data = get_data(str(gerencia), MAPEO_GERENCIAS[gerencia])
-            response = requests.post(
-                f"{ENV.API_URL}api/v1/demanda/bulk-upsert",
-                json={"data": data},
-                headers={"Content-Type": "application/json"}
+            logging.info(
+                f"📊 Procesando gerencia: {MAPEO_GERENCIAS[gerencia]} (ID: {gerencia})"
             )
+            data = get_data(str(gerencia), MAPEO_GERENCIAS[gerencia])
+            print(data)
+            print(type(data))
+            import json
+
+            print(type(json.dumps(data)))
+            response = requests.post(
+                "http://localhost:3000/api/v1/demanda/bulk-insert",
+                json={"data": data},
+                headers={"Content-Type": "application/json"},
+            )
+            print(response.text)
+            print(response.status_code)
 
             if not response.ok:
-                raise ValueError(f"Failed to write data to the database: {response.status_code}")
+                raise ValueError(
+                    f"Failed to write data to the database: {response.status_code}"
+                )
 
-            logging.info(f"✅ Datos enviados exitosamente a la API para gerencia {MAPEO_GERENCIAS[gerencia]}")
+            logging.info(
+                f"✅ Datos enviados exitosamente a la API para gerencia {MAPEO_GERENCIAS[gerencia]}"
+            )
         except Exception as e:
-            logging.error(f"❌ Error al procesar la gerencia {MAPEO_GERENCIAS[gerencia]}: {e}")
+            logging.error(
+                f"❌ Error al procesar la gerencia {MAPEO_GERENCIAS[gerencia]}: {e}"
+            )
