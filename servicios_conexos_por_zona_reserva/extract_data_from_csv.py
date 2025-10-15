@@ -198,6 +198,14 @@ def process_all_csv_files_with_api(
             logging.info("ℹ️ No CSV files found in download folder")
         else:
             logging.info(f"📁 Found files: {csv_files}")
+            # Clean up incorrect files
+            for csv_file in csv_files:
+                try:
+                    file_path = os.path.join(download_folder, csv_file)
+                    os.remove(file_path)
+                    logging.info(f"🗑️ Cleaned up incorrect file: {csv_file}")
+                except Exception as e:
+                    logging.warning(f"Could not delete file {csv_file}: {e}")
         return {
             "processed": 0,
             "failed": 0,
@@ -225,6 +233,14 @@ def process_all_csv_files_with_api(
             chat_id,
             f"Error en process_all_csv_files_with_api: {error_msg}",
         )
+        # Clean up invalid files
+        for csv_file in csv_files:
+            try:
+                file_path = os.path.join(download_folder, csv_file)
+                os.remove(file_path)
+                logging.info(f"🗑️ Cleaned up invalid file: {csv_file}")
+            except Exception as e:
+                logging.warning(f"Could not delete file {csv_file}: {e}")
         return {
             "processed": 0,
             "failed": 0,

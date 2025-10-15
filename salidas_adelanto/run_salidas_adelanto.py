@@ -1,6 +1,8 @@
 from salidas_adelanto.get_salidas_adelanto import get_salidas_adelanto
 from salidas_adelanto.process_salidas_adelanto import process_salidas_adelanto
+from global_utils import delete_csv_files_after_process
 
 def run_salidas_adelanto():
     get_salidas_adelanto()
     process_salidas_adelanto()
+    delete_csv_files_after_process()

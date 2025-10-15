@@ -117,13 +117,5 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
         )
     finally:
         logging.info("Download process for finished.")
-        if os.path.exists(download_folder):
-            files = os.listdir(download_folder)
-            if len(files) > 0:
-                for file in files:
-                    file_path = os.path.join(download_folder, file)
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
-                        logging.info(f"Removed file: {file_path}")
         if driver:
             driver.quit()

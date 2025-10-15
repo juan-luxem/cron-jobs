@@ -200,6 +200,14 @@ def process_all_csv_files_with_api(
         error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
         logging.error(error_msg)
         send_telegram_message(bot_token, chat_id, error_msg)
+        # Clean up files on validation error
+        for csv_file in csv_files:
+            file_path = os.path.join(download_folder, csv_file)
+            try:
+                os.remove(file_path)
+                logging.info(f"Removed file after validation error: {file_path}")
+            except OSError as e:
+                logging.warning(f"Failed to remove file {file_path}: {e}")
         if len(csv_files) == 0:
             logging.info("ℹ️ No CSV files found in download folder")
         else:
@@ -227,6 +235,14 @@ def process_all_csv_files_with_api(
         error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
         logging.error(error_msg)
         send_telegram_message(bot_token, chat_id, error_msg)
+        # Clean up files on validation error
+        for csv_file in csv_files:
+            file_path = os.path.join(download_folder, csv_file)
+            try:
+                os.remove(file_path)
+                logging.info(f"Removed file after validation error: {file_path}")
+            except OSError as e:
+                logging.warning(f"Failed to remove file {file_path}: {e}")
         return {
             "processed": 0,
             "failed": 0,

@@ -119,11 +119,5 @@ def get_servicios_conexos_por_zona_reserva(systems: list = ["SIN", "BCS", "BCA"]
         )
     finally:
         logging.info("Download process finished.")
-        if os.path.exists(download_folder):
-            for file in os.listdir(download_folder):
-                file_path = os.path.join(download_folder, file)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-                    logging.info(f"Removed file: {file_path}")
         if driver:
             driver.quit()

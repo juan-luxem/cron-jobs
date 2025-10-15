@@ -89,25 +89,25 @@ if __name__ == "__main__":
     )
 
     # PML MDA
-    # Run this script every day at 06:00 AM
+    # Run this script every day at 05:50 AM
     # Checked ✅
     scheduler.add_job(
         pml.get_pml_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="0",  # 06:00
+        hour="5",
+        minute="50",  # 05:50
     )
 
     # PML MTR
-    # Run this script every day at 06:05 AM
+    # Run this script every day at 05:55 AM
     # Checked ✅
     scheduler.add_job(
         pml.get_pml_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="6",
-        minute="5",  # 06:05
+        hour="5",
+        minute="55",  # 05:55
     )
 
     # Run PND MDA
@@ -116,8 +116,8 @@ if __name__ == "__main__":
         pnd.get_pml_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="20",
-        minute="52",  # 06:00
+        hour="6",
+        minute="0",  # 06:00
     )
 
     # Run PND MTR
@@ -126,8 +126,8 @@ if __name__ == "__main__":
         pnd.get_pml_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="20",
-        minute="53",  # 06:05
+        hour="6",
+        minute="5",  # 06:05
     )
 
     # Servicios Conexos MDA
@@ -289,8 +289,8 @@ if __name__ == "__main__":
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="20",
-        minute="0",  # 20:00
+        hour="23",
+        minute="39",  # 20:00
     )
 
     # Cantidades Asignadas Servicios Conexos MTR
@@ -300,8 +300,8 @@ if __name__ == "__main__":
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="20",
-        minute="5",  # 20:05
+        hour="23",
+        minute="41",  # 20:05
     )
 
     # Asignación por Participante de Mercado
@@ -311,8 +311,8 @@ if __name__ == "__main__":
         asignacion_por_participante_mercado.get_asignacion_por_participante_mercado,
         "cron",
         day_of_week="*",  # every day"
-        hour="22",
-        minute="0",  # 22:00
+        hour="23",
+        minute="43",  # 22:00
     )
 
     # Servicios Conexos por Zona de Reserva
@@ -322,8 +322,8 @@ if __name__ == "__main__":
         servicios_conexos_por_zona_reserva.run_servicios_conexos_por_zona_reserva,
         "cron",
         day_of_week="*",  # every day"
-        hour="22",
-        minute="5",  # 22:05
+        hour="23",
+        minute="45",  # 22:05
     )
 
     # logging.info("process started")

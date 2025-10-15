@@ -165,11 +165,5 @@ def get_salidas_adelanto():
         )
     finally:
         logging.info(f"🏁 Download process for {mau_key} finished.")
-        if os.path.exists(download_folder):
-            for file in os.listdir(download_folder):
-                file_path = os.path.join(download_folder, file)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-                    logging.info(f"Removed file: {file_path}")
         if driver:
             driver.quit()

@@ -164,15 +164,5 @@ def get_demanda_real_balance():
         send_telegram_message(bot_token, chat_id, f"Error en demanda_real_balance: {e}")
         return
     finally:
-        if os.path.exists(download_folder):
-            files = os.listdir(download_folder)
-            if len(files) > 0:
-                for file in files:
-                    file_path = os.path.join(download_folder, file)
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
-                        logging.info(f"Removed file: {file_path}")
-            else:
-                logging.info("No files to remove.")
         if driver:
             driver.quit()

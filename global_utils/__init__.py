@@ -7,6 +7,7 @@ from .get_selenium_options import get_selenium_options
 from .extract_fecha_operacion_from_filename import extract_fecha_operacion_from_filename
 from .extract_fecha_operacion_from_row import extract_fecha_operacion_from_row
 from .send_data_in_chunks import send_data_in_chunks
+from .delete_csv_files_after_process import delete_csv_files_after_process
 
 __all__ = [
     'extract_sistema_from_filename',
@@ -16,5 +17,6 @@ __all__ = [
     'get_selenium_options',
     'extract_fecha_operacion_from_filename',
     'extract_fecha_operacion_from_row',
-    'send_data_in_chunks'
+    'send_data_in_chunks',
+    'delete_csv_files_after_process',
 ]
