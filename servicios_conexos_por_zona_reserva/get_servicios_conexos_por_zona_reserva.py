@@ -7,6 +7,8 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from global_utils.get_selenium_options import get_selenium_options
+from global_utils.send_telegram_message import send_telegram_message
+from config import ENV
 
 
 def get_servicios_conexos_por_zona_reserva(systems: list = ["SIN", "BCS", "BCA"]):
@@ -15,6 +17,8 @@ def get_servicios_conexos_por_zona_reserva(systems: list = ["SIN", "BCS", "BCA"]
     """
 
     url = "https://www.cenace.gob.mx/Paginas/SIM/Reportes/ResultadosMDA.aspx"
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
     # --- Setup Download Folder ---
     cwd = os.getcwd()
@@ -50,6 +54,11 @@ def get_servicios_conexos_por_zona_reserva(systems: list = ["SIN", "BCS", "BCA"]
 
         except Exception as e:
             logging.error(f"Error selecting report type: {e}")
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"Error en get_servicios_conexos_por_zona_reserva: {e}",
+            )
             return None
 
         # --- Iterate Through Each System ---
@@ -85,14 +94,36 @@ def get_servicios_conexos_por_zona_reserva(systems: list = ["SIN", "BCS", "BCA"]
 
             except Exception as e:
                 logging.error(f"Error processing system {system}: {e}")
+                send_telegram_message(
+                    bot_token,
+                    chat_id,
+                    f"Error en get_servicios_conexos_por_zona_reserva procesando {system}: {e}",
+                )
                 continue
 
-    except TimeoutException:
+    except TimeoutException as e:
         logging.error(
             f"A page element did not load in time. Could not complete the process for {url}"
         )
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Timeout en get_servicios_conexos_por_zona_reserva: {e}",
+        )
     except Exception as e:
         logging.error(f"An unexpected error occurred during the process: {e}")
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error inesperado en get_servicios_conexos_por_zona_reserva: {e}",
+        )
     finally:
         logging.info("Download process finished.")
-        driver.quit()
+        if os.path.exists(download_folder):
+            for file in os.listdir(download_folder):
+                file_path = os.path.join(download_folder, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    logging.info(f"Removed file: {file_path}")
+        if driver:
+            driver.quit()

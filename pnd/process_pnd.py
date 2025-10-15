@@ -1,15 +1,15 @@
 from config import ENV
 import os
 import logging
-from pml.extract_data_from_csv import process_all_csv_files_with_api
+from pnd.extract_data_from_csv import process_all_csv_files_with_api
 from global_utils.send_telegram_message import send_telegram_message
 
 logging.basicConfig(level=logging.INFO)
 
 
-def process_pml_data(market_type: str):
+def process_pnd_data(market_type: str):
     """
-    Processes PML data for the specified market type (MDA or MTR).
+    Processes PND data for the specified market type (MDA or MTR).
 
     Args:
         market_type (str): 'MDA' or 'MTR'
@@ -20,7 +20,7 @@ def process_pml_data(market_type: str):
 
     # Setup paths and URLs
     API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
-    API_ENDPOINT = f"{API_URL}api/v1/pml/bulk?market={market_type}"
+    API_ENDPOINT = f"{API_URL}api/v1/pnd/bulk?market={market_type}"
     bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
     chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
@@ -28,7 +28,7 @@ def process_pml_data(market_type: str):
     download_folder = os.path.join(cwd, "download_folder")
     os.makedirs(download_folder, exist_ok=True)
 
-    logging.info(f"🚀 Starting PML {market_type} data processing")
+    logging.info(f"🚀 Starting PND {market_type} data processing")
     logging.info(f"📁 Download folder: {download_folder}")
     logging.info(f"🌐 API endpoint: {API_ENDPOINT}")
 
@@ -45,7 +45,7 @@ def process_pml_data(market_type: str):
         send_telegram_message(
             bot_token,
             chat_id,
-            f"Error en process_pml_data ({market_type}): {summary['error']}",
+            f"Error en process_pnd_data ({market_type}): {summary['error']}",
         )
     else:
         logging.info(f"🎯 Final Summary for {market_type}:")
@@ -60,7 +60,7 @@ def process_pml_data(market_type: str):
             send_telegram_message(
                 bot_token,
                 chat_id,
-                f"Fallo en process_pml_data ({market_type}): {summary['failed']} de {summary['total']} archivos.",
+                f"Fallo en process_pnd_data ({market_type}): {summary['failed']} de {summary['total']} archivos.",
             )
 
     return summary

@@ -7,15 +7,17 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from global_utils.get_selenium_options import get_selenium_options
+from global_utils.send_telegram_message import send_telegram_message
+from config import ENV
 
 # --- Logger Setup ---
 # This sets up a simple logger to print info and error messages to the console.
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-def get_pml_generic(market_type: str, systems: list = ['SIN', 'BCS', 'BCA']):
+
+def get_pml_generic(market_type: str, systems: list = ["SIN", "BCS", "BCA"]):
     """
     Generic function to download PML data from CENACE for any market type.
 
@@ -26,15 +28,17 @@ def get_pml_generic(market_type: str, systems: list = ['SIN', 'BCS', 'BCA']):
     # --- Configuration ---
     urls = {
         "MDA": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMDA.aspx",
-        "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMTR.aspx"
+        "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMTR.aspx",
     }
-    
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
+
     if market_type not in urls:
         logging.error(f"Invalid market type: {market_type}. Use 'MDA' or 'MTR'.")
         return
 
     url = urls[market_type]
-    
+
     # --- Setup Download Folder ---
     cwd = os.getcwd()
     download_folder = os.path.join(cwd, "download_folder")
@@ -53,35 +57,67 @@ def get_pml_generic(market_type: str, systems: list = ['SIN', 'BCS', 'BCA']):
 
         # --- Iterate Through Each System ---
         for _, system in enumerate(systems):
-                try:
-                    # Find and select the system in the second dropdown
-                    system_select_element = wait.until(EC.presence_of_element_located((By.ID, "ContentPlaceHolder1_ddlSistema")))
-                    #ContentPlaceHolder1_ddlSistema
-                    system_select = Select(system_select_element)
-                    system_select.select_by_value(system)
-                    logging.info(f"Selected {system} option")
-                    
-                    # Wait for postback to complete
-                    time.sleep(3)
-                    
-                    # Click on the CSV download button
-                    csv_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@src='../imagenes/csv.svg']")))
-                    time.sleep(2)
+            try:
+                # Find and select the system in the second dropdown
+                system_select_element = wait.until(
+                    EC.presence_of_element_located(
+                        (By.ID, "ContentPlaceHolder1_ddlSistema")
+                    )
+                )
+                # ContentPlaceHolder1_ddlSistema
+                system_select = Select(system_select_element)
+                system_select.select_by_value(system)
+                logging.info(f"Selected {system} option")
 
-                    csv_button.click()
-                    logging.info(f"Clicked CSV download button for {system}")
-                    
-                    # Wait for download to complete
-                    time.sleep(4)
-                    
-                except Exception as e:
-                    logging.error(f"Error processing system {system}: {e}")
-                    continue
+                # Wait for postback to complete
+                time.sleep(3)
 
-    except TimeoutException:
-        logging.error(f"❌ A page element did not load in time. Could not complete the process for {url}")
+                # Click on the CSV download button
+                csv_button = wait.until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//input[@src='../imagenes/csv.svg']")
+                    )
+                )
+                time.sleep(2)
+
+                csv_button.click()
+                logging.info(f"Clicked CSV download button for {system}")
+
+                # Wait for download to complete
+                time.sleep(4)
+
+            except Exception as e:
+                logging.error(f"Error processing system {system}: {e}")
+                send_telegram_message(
+                    bot_token,
+                    chat_id,
+                    f"Error en get_pml_generic ({market_type}) procesando {system}: {e}",
+                )
+                continue
+
+    except TimeoutException as e:
+        logging.error(
+            f"❌ A page element did not load in time. Could not complete the process for {url}"
+        )
+        send_telegram_message(
+            bot_token, chat_id, f"Timeout en get_pml_generic ({market_type}): {e}"
+        )
     except Exception as e:
-        logging.error(f"❌ An unexpected error occurred during the {market_type} process: {e}")
+        logging.error(
+            f"❌ An unexpected error occurred during the {market_type} process: {e}"
+        )
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error inesperado en get_pml_generic ({market_type}): {e}",
+        )
     finally:
         logging.info(f"🏁 Download process for {market_type} finished.")
-        driver.quit()
+        if os.path.exists(download_folder):
+            for file in os.listdir(download_folder):
+                file_path = os.path.join(download_folder, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    logging.info(f"Removed file: {file_path}")
+        if driver:
+            driver.quit()

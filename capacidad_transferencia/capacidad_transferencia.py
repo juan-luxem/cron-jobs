@@ -10,6 +10,8 @@ from capacidad_transferencia.get_capacidad_transferencia_data import (
     get_capacidad_transferencia_data,
 )
 from global_utils import get_selenium_options
+from global_utils.send_telegram_message import send_telegram_message
+from config import ENV
 
 
 def get_capacidad_transferencia():
@@ -82,6 +84,13 @@ def get_capacidad_transferencia():
         logging.info("CSV files downloaded successfully.")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
+        bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+        chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en el script de capacidad de transferencia: {e}",
+        )
     finally:
         time.sleep(10)  # Wait for the download to complete
         # Check if the download folder is empty, remove files if it not
@@ -100,4 +109,3 @@ def get_capacidad_transferencia():
             # Wait for the download to complete
             driver.quit()
             logging.info("Driver closed successfully.")
-

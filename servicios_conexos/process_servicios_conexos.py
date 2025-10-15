@@ -2,24 +2,28 @@ from config import ENV
 import os
 import logging
 from servicios_conexos.extract_data_from_csv import process_all_csv_files_with_api
+from global_utils.send_telegram_message import send_telegram_message
 
 logging.basicConfig(level=logging.INFO)
+
 
 def process_servicios_conexos_data(market_type: str):
     """
     Processes Servicios Conexos data for the specified market type (MDA or MTR).
-    
+
     Args:
         market_type (str): 'MDA' or 'MTR'
     """
-    if market_type not in ['MDA', 'MTR']:
+    if market_type not in ["MDA", "MTR"]:
         logging.error(f"❌ Invalid market type: {market_type}. Use 'MDA' or 'MTR'.")
         return
-    
+
     # Setup paths and URLs
     API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
     API_ENDPOINT = f"{API_URL}api/v1/servicios-conexos/bulk?market={market_type}"
-    
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
+
     cwd = os.getcwd()
     download_folder = os.path.join(cwd, "download_folder")
     os.makedirs(download_folder, exist_ok=True)
@@ -34,19 +38,33 @@ def process_servicios_conexos_data(market_type: str):
 
     # Process all CSV files and send to API
     summary = process_all_csv_files_with_api(download_folder, API_ENDPOINT)
-    
+
     # Log final summary
     if "error" in summary:
         logging.error(f"❌ Processing failed: {summary['error']}")
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en process_servicios_conexos_data ({market_type}): {summary['error']}",
+        )
     else:
         logging.info(f"🎯 Final Summary for Servicios Conexos {market_type}:")
         logging.info(f"   ✅ Processed: {summary['processed']}/{summary['total']}")
         logging.info(f"   ❌ Failed: {summary['failed']}/{summary['total']}")
         logging.info(f"   📂 Remaining: {summary['remaining']}")
-        
-        if summary['processed'] == summary['total'] and summary['remaining'] == 0:
-            logging.info(f"🎉 All Servicios Conexos {market_type} files processed successfully!")
-        elif summary['failed'] > 0:
-            logging.warning(f"⚠️ Some Servicios Conexos {market_type} files failed to process")
+
+        if summary["processed"] == summary["total"] and summary["remaining"] == 0:
+            logging.info(
+                f"🎉 All Servicios Conexos {market_type} files processed successfully!"
+            )
+        elif summary["failed"] > 0:
+            logging.warning(
+                f"⚠️ Some Servicios Conexos {market_type} files failed to process"
+            )
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"Fallo en process_servicios_conexos_data ({market_type}): {summary['failed']} de {summary['total']} archivos.",
+            )
 
     return summary

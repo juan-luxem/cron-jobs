@@ -8,13 +8,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from global_utils.get_selenium_options import get_selenium_options
+from global_utils.send_telegram_message import send_telegram_message
 
 # --- Logger Setup ---
 # This sets up a simple logger to print info and error messages to the console.
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 
 def get_salidas_ocurridas():
     """
@@ -52,18 +53,24 @@ def get_salidas_ocurridas():
     if not os.path.exists(str(mau_key)):
         logging.error("Key files not found in credentials path")
         return
-    
+
     try:
         driver.get(url)
 
         e_key_input_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "uploadCer"))  # Wait for the body to load
-        ) 
+            EC.presence_of_element_located(
+                (By.ID, "uploadCer")
+            )  # Wait for the body to load
+        )
         cert_input_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "uploadKey")) # Or By.NAME, By.XPATH, etc.
+            EC.presence_of_element_located(
+                (By.ID, "uploadKey")
+            )  # Or By.NAME, By.XPATH, etc.
         )
         password_key_input_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "txtPrivateKey")) # Or By.NAME, By.XPATH, etc.
+            EC.presence_of_element_located(
+                (By.ID, "txtPrivateKey")
+            )  # Or By.NAME, By.XPATH, etc.
         )
 
         login_button = WebDriverWait(driver, 10).until(
@@ -102,35 +109,59 @@ def get_salidas_ocurridas():
         )
         area_menu_element.click()
         time.sleep(2)  # Wait for the menu to load
-        op_nav_element= WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'DropdownB1300'))
+        op_nav_element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "DropdownB1300"))
         )
         op_nav_element.click()
         time.sleep(2)  # Wait for the menu to load
         sal_nav_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'DropdownB18000')))
+            EC.presence_of_element_located((By.ID, "DropdownB18000"))
+        )
         sal_nav_element.click()
         time.sleep(2)  # Wait for the menu to load
         sal_adelanto_nav_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'S22')))
+            EC.presence_of_element_located((By.ID, "S22"))
+        )
         sal_adelanto_nav_element.click()
         time.sleep(6)  # Wait for the menu to load
         iframe_element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, 'areaTrabajoModelosUtilizadosMem')))
+            EC.presence_of_element_located((By.ID, "areaTrabajoModelosUtilizadosMem"))
+        )
         driver.switch_to.frame(iframe_element)
         time.sleep(4)  # Wait for the menu to load
 
-        csv_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "RadGridPublicacion_ctl00_ctl04_gbccolumn")))
+        csv_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable(
+                (By.ID, "RadGridPublicacion_ctl00_ctl04_gbccolumn")
+            )
+        )
         csv_button.click()
 
         logging.info(f"Clicked CSV download button for salidas adelanto")
-        
+
         time.sleep(4)
 
-    except TimeoutException:
-        logging.error(f"❌ A page element did not load in time. Could not complete the process for {url}")
+    except TimeoutException as e:
+        logging.error(
+            f"❌ A page element did not load in time. Could not complete the process for {url}"
+        )
+        send_telegram_message(
+            bot_token, chat_id, f"Timeout en get_salidas_ocurridas: {e}"
+        )
     except Exception as e:
-        logging.error(f"❌ An unexpected error occurred during the {mau_password} process: {e}")
+        logging.error(
+            f"❌ An unexpected error occurred during the {mau_password} process: {e}"
+        )
+        send_telegram_message(
+            bot_token, chat_id, f"Error inesperado en get_salidas_ocurridas: {e}"
+        )
     finally:
         logging.info(f"🏁 Download process for {mau_key} finished.")
-        driver.quit()
+        if os.path.exists(download_folder):
+            for file in os.listdir(download_folder):
+                file_path = os.path.join(download_folder, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    logging.info(f"Removed file: {file_path}")
+        if driver:
+            driver.quit()

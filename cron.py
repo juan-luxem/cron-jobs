@@ -8,6 +8,7 @@ from ngi_api import ngi
 # from demanda import demanda
 from demanda_real_balance import demanda_real_balance
 from pml import pml
+from pnd import pnd
 from servicios_conexos import servicios_conexos
 from generacion_gi_ofertada import generacion_gi_ofertada
 from generacion_ndso_ofertada import generacion_ndso_ofertada
@@ -107,6 +108,26 @@ if __name__ == "__main__":
         day_of_week="*",  # every day"
         hour="6",
         minute="5",  # 06:05
+    )
+
+    # Run PND MDA
+    # Run this script every day at 6:00 AM
+    scheduler.add_job(
+        pnd.get_pml_mda,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="20",
+        minute="52",  # 06:00
+    )
+
+    # Run PND MTR
+    # Run this script every day at 6:05 AM
+    scheduler.add_job(
+        pnd.get_pml_mtr,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="20",
+        minute="53",  # 06:05
     )
 
     # Servicios Conexos MDA

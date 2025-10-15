@@ -7,6 +7,8 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from global_utils.get_selenium_options import get_selenium_options
+from global_utils.send_telegram_message import send_telegram_message
+from config import ENV
 
 
 def get_generacion_idr_ofertada_generic(
@@ -24,6 +26,8 @@ def get_generacion_idr_ofertada_generic(
         "MDA": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/OfertasMDA.aspx",
         "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/OfertasMTR.aspx",
     }
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
     if market_type not in urls:
         logging.error(f"Invalid market type: {market_type}. Use 'MDA' or 'MTR'.")
@@ -56,18 +60,27 @@ def get_generacion_idr_ofertada_generic(
             )
             report_select = Select(report_select_element)
             if market_type == "MDA":
-                report_select.select_by_value("369")  # Ofertas de Venta – Recursos Interm Despachables
+                report_select.select_by_value(
+                    "369"
+                )  # Ofertas de Venta – Recursos Interm Despachables
             else:
                 report_select.select_by_value(
                     "381"
                 )  # Ofertas de Venta – Recursos Interm Despachables
-            logging.info("Selected 'Ofertas de Venta – Recursos Interm Despachables' option")
+            logging.info(
+                "Selected 'Ofertas de Venta – Recursos Interm Despachables' option"
+            )
 
             # Wait for postback to complete and page to load
             time.sleep(5)
 
         except Exception as e:
             logging.error(f"Error selecting report type: {e}")
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"Error en get_generacion_idr_ofertada_generic ({market_type}): {e}",
+            )
             return None
 
         # --- Iterate Through Each System ---
@@ -103,16 +116,38 @@ def get_generacion_idr_ofertada_generic(
 
             except Exception as e:
                 logging.error(f"Error processing system {system}: {e}")
+                send_telegram_message(
+                    bot_token,
+                    chat_id,
+                    f"Error en get_generacion_idr_ofertada_generic ({market_type}) procesando {system}: {e}",
+                )
                 continue
 
-    except TimeoutException:
+    except TimeoutException as e:
         logging.error(
             f"❌ A page element did not load in time. Could not complete the process for {url}"
+        )
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Timeout en get_generacion_idr_ofertada_generic ({market_type}): {e}",
         )
     except Exception as e:
         logging.error(
             f"❌ An unexpected error occurred during the {market_type} process: {e}"
         )
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error inesperado en get_generacion_idr_ofertada_generic ({market_type}): {e}",
+        )
     finally:
         logging.info(f"🏁 Download process for {market_type} finished.")
-        driver.quit()
+        if os.path.exists(download_folder):
+            for file in os.listdir(download_folder):
+                file_path = os.path.join(download_folder, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    logging.info(f"Removed file: {file_path}")
+        if driver:
+            driver.quit()

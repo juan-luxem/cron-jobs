@@ -2,6 +2,7 @@ from config import ENV
 import os
 import logging
 from .extract_data_from_csv import process_all_csv_files_with_api
+from global_utils.send_telegram_message import send_telegram_message
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,6 +15,8 @@ def process_servicios_conexos_por_zona_reserva():
     # Setup paths and URLs
     API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
     API_ENDPOINT = f"{API_URL}api/v1/servicios-conexos-por-zona-reserva/bulk?"
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
     cwd = os.getcwd()
     download_folder = os.path.join(cwd, "download_folder")
@@ -32,6 +35,11 @@ def process_servicios_conexos_por_zona_reserva():
     # Log final summary
     if "error" in summary:
         logging.error(f"Processing failed: {summary['error']}")
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en process_servicios_conexos_por_zona_reserva: {summary['error']}",
+        )
     else:
         logging.info(f"Processed: {summary['processed']}/{summary['total']}")
         logging.info(f"Failed: {summary['failed']}/{summary['total']}")
@@ -41,5 +49,10 @@ def process_servicios_conexos_por_zona_reserva():
             logging.info("All files processed successfully!")
         elif summary["failed"] > 0:
             logging.warning("Some files failed to process")
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"Fallo en process_servicios_conexos_por_zona_reserva: {summary['failed']} de {summary['total']} archivos.",
+            )
 
     return summary

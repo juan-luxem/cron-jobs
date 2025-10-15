@@ -1,6 +1,6 @@
-import logging
-import time
 import os
+import time
+import logging
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
@@ -10,15 +10,34 @@ from global_utils.get_selenium_options import get_selenium_options
 from global_utils.send_telegram_message import send_telegram_message
 from config import ENV
 
+# --- Logger Setup ---
+# This sets up a simple logger to print info and error messages to the console.
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
-def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", "BCA"]):
-    """
-    Generic function to download Asignación por Participante del Mercado data from CENACE.
-    """
 
-    url = "https://www.cenace.gob.mx/Paginas/SIM/Reportes/ResultadosMDA.aspx"
+def get_pnd_generic(market_type: str, systems: list = ["SIN", "BCS", "BCA"]):
+    """
+    Generic function to download PML data from CENACE for any market type.
+
+    Args:
+        market_type (str): 'MDA' or 'MTR' to determine which URL to use.
+        systems (list): A list of electrical systems to process.
+    """
+    # --- Configuration ---
+    urls = {
+        "MDA": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMDA.aspx",
+        "MTR": "https://www.cenace.gob.mx/Paginas/SIM/Reportes/PreEnerServConMTR.aspx",
+    }
     bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
     chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
+
+    if market_type not in urls:
+        logging.error(f"Invalid market type: {market_type}. Use 'MDA' or 'MTR'.")
+        return
+
+    url = urls[market_type]
 
     # --- Setup Download Folder ---
     cwd = os.getcwd()
@@ -36,7 +55,7 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
     try:
         driver.get(url)
 
-        # First, select "Asignación por Participante del Mercado" from the first dropdown
+        # First, select "PND" from the first dropdown
         try:
             report_select_element = wait.until(
                 EC.presence_of_element_located(
@@ -44,10 +63,15 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
                 )
             )
             report_select = Select(report_select_element)
-            report_select.select_by_value(
-                "348"
-            )  # Asignación por Participante del Mercado
-            logging.info("Selected 'Asignación por Participante del Mercado' option")
+            if market_type == "MDA":
+                report_select.select_by_value(
+                    "360,323"
+                )  # Precios de Nodos distribuidos MDA
+            else:
+                report_select.select_by_value(
+                    "363,326"
+                )  # Precios de Nodos distribuidos MTR
+            logging.info("Selected 'Precios de nodos distribuidos' option")
 
             # Wait for postback to complete and page to load
             time.sleep(5)
@@ -55,9 +79,7 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
         except Exception as e:
             logging.error(f"Error selecting report type: {e}")
             send_telegram_message(
-                bot_token,
-                chat_id,
-                f"Error en asignacion_por_participante_mercado: {e}",
+                bot_token, chat_id, f"Error en get_pnd_generic ({market_type}): {e}"
             )
             return None
 
@@ -97,33 +119,33 @@ def get_asignacion_por_participante_mercado_file(systems: list = ["SIN", "BCS", 
                 send_telegram_message(
                     bot_token,
                     chat_id,
-                    f"Error en asignacion_por_participante_mercado procesando {system}: {e}",
+                    f"Error en get_pnd_generic ({market_type}) procesando {system}: {e}",
                 )
                 continue
 
     except TimeoutException as e:
         logging.error(
-            f"A page element did not load in time. Could not complete the process for {url}"
+            f"❌ A page element did not load in time. Could not complete the process for {url}"
         )
         send_telegram_message(
-            bot_token, chat_id, f"Timeout en asignacion_por_participante_mercado: {e}"
+            bot_token, chat_id, f"Timeout en get_pnd_generic ({market_type}): {e}"
         )
     except Exception as e:
-        logging.error(f"An unexpected error occurred during the process: {e}")
+        logging.error(
+            f"❌ An unexpected error occurred during the {market_type} process: {e}"
+        )
         send_telegram_message(
             bot_token,
             chat_id,
-            f"Error inesperado en asignacion_por_participante_mercado: {e}",
+            f"Error inesperado en get_pnd_generic ({market_type}): {e}",
         )
     finally:
-        logging.info("Download process for finished.")
+        logging.info(f"🏁 Download process for {market_type} finished.")
         if os.path.exists(download_folder):
-            files = os.listdir(download_folder)
-            if len(files) > 0:
-                for file in files:
-                    file_path = os.path.join(download_folder, file)
-                    if os.path.isfile(file_path):
-                        os.remove(file_path)
-                        logging.info(f"Removed file: {file_path}")
+            for file in os.listdir(download_folder):
+                file_path = os.path.join(download_folder, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    logging.info(f"Removed file: {file_path}")
         if driver:
             driver.quit()

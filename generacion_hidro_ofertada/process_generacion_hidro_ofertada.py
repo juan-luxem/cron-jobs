@@ -2,6 +2,7 @@ from config import ENV
 import os
 import logging
 from .extract_data_from_csv import process_all_csv_files_with_api
+from global_utils.send_telegram_message import send_telegram_message
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,6 +23,8 @@ def process_generacion_hidro_ofertada(market_type: str):
     API_ENDPOINT = (
         f"{API_URL}api/v1/generacion-hidro-ofertada/bulk?market={market_type}"
     )
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
     cwd = os.getcwd()
     download_folder = os.path.join(cwd, "download_folder")
@@ -43,6 +46,11 @@ def process_generacion_hidro_ofertada(market_type: str):
     # Log final summary
     if "error" in summary:
         logging.error(f"❌ Processing failed: {summary['error']}")
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en process_generacion_hidro_ofertada ({market_type}): {summary['error']}",
+        )
     else:
         logging.info(f"🎯 Final Summary for {market_type}:")
         logging.info(f"   ✅ Processed: {summary['processed']}/{summary['total']}")
@@ -53,5 +61,10 @@ def process_generacion_hidro_ofertada(market_type: str):
             logging.info(f"🎉 All {market_type} files processed successfully!")
         elif summary["failed"] > 0:
             logging.warning(f"⚠️ Some {market_type} files failed to process")
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"Fallo en process_generacion_hidro_ofertada ({market_type}): {summary['failed']} de {summary['total']} archivos.",
+            )
 
     return summary
