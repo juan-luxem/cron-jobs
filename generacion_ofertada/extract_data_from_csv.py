@@ -1,3 +1,4 @@
+from config import ENV
 import os
 import logging
 import pandas as pd
@@ -8,6 +9,7 @@ from global_utils.find_header_row import find_header_row
 from global_utils.clean_column_names import clean_column_names
 from global_utils.extract_fecha_operacion_from_filename import extract_fecha_operacion_from_filename
 from global_utils.extract_sistema_from_file import extract_sistema_from_filename
+from global_utils.send_telegram_message import send_telegram_message
 from io import StringIO
 
 logging.basicConfig(level=logging.INFO)
@@ -317,9 +319,8 @@ def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
     Validates that exactly 3 CSV files are present (one for each system: SIN, BCS, BCA).
     Returns a summary of processed vs failed files.
     """
-    if not os.path.exists(download_folder):
-        logging.error(f"❌ Download folder not found: {download_folder}")
-        return {"processed": 0, "failed": 0, "total": 0, "error": "Download folder not found"}
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
     
     # Get all CSV files in the download folder
     csv_files = [f for f in os.listdir(download_folder) if f.endswith('.csv')]
@@ -328,6 +329,11 @@ def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
     if len(csv_files) != 3:
         error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
         logging.error(error_msg)
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            error_msg
+        )
         if len(csv_files) == 0:
             logging.info("ℹ️ No CSV files found in download folder")
         else:
@@ -349,6 +355,11 @@ def process_all_csv_files_with_api(download_folder: str, endpoint_url: str):
         extra_systems = found_systems - expected_systems
         error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
         logging.error(error_msg)
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            error_msg
+        )
         return {"processed": 0, "failed": 0, "total": len(csv_files), "error": error_msg}
 
     logging.info(f"✅ System validation passed: Found files for {found_systems}")

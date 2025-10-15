@@ -27,6 +27,11 @@ def process_servicios_conexos_por_zona_reserva():
 
     if not os.path.exists(download_folder):
         logging.error(f"❌ Download folder not found: {download_folder}")
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en process_servicios_conexos_por_zona_reserva: Download folder not found",
+        )
         return
 
     # Process all CSV files and send to API

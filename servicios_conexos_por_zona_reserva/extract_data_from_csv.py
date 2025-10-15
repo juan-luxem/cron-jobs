@@ -1,3 +1,4 @@
+from config import ENV
 import os
 import logging
 import pandas as pd
@@ -8,6 +9,7 @@ from global_utils import (
     clean_column_names,
     extract_fecha_operacion_from_filename,
     extract_sistema_from_filename,
+    send_telegram_message
 )
 from io import StringIO
 
@@ -178,22 +180,20 @@ def process_all_csv_files_with_api(
     Validates that exactly 3 CSV files are present (one for each system: SIN, BCS, BCA).
     Returns a summary of processed vs failed files.
     """
-    if not os.path.exists(download_folder):
-        logging.error(f"❌ Download folder not found: {download_folder}")
-        return {
-            "processed": 0,
-            "failed": 0,
-            "total": 0,
-            "error": "Download folder not found",
-        }
-
     # Get all CSV files in the download folder
+    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
+    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
     csv_files = [f for f in os.listdir(download_folder) if f.endswith(".csv")]
 
     # Validate exactly 3 CSV files
     if len(csv_files) != 3:
         error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
         logging.error(error_msg)
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en process_all_csv_files_with_api: {error_msg}",
+        )
         if len(csv_files) == 0:
             logging.info("ℹ️ No CSV files found in download folder")
         else:
@@ -220,6 +220,11 @@ def process_all_csv_files_with_api(
         extra_systems = found_systems - expected_systems
         error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
         logging.error(error_msg)
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en process_all_csv_files_with_api: {error_msg}",
+        )
         return {
             "processed": 0,
             "failed": 0,

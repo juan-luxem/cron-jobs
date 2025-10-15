@@ -184,10 +184,6 @@ def process_all_csv_files_with_api(download_folder: str, endpoint_url: str) -> D
     Processes one file in download folder, sends to API, and deletes successful files.
         Returns a summary of processed vs failed files.
     """
-    if not os.path.exists(download_folder):
-        logging.error(f"❌ Download folder not found: {download_folder}")
-        return {"processed": 0, "failed": 0, "total": 0, "error": "Download folder not found"}
-    
     # Get all CSV files in the download folder
     csv_files = [f for f in os.listdir(download_folder) if f.endswith('.csv')]
     

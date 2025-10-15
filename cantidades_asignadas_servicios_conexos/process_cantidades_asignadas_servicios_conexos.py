@@ -36,6 +36,11 @@ def process_cantidades_asignadas_servicios_conexos(market_type: str):
 
     if not os.path.exists(download_folder):
         logging.error(f"❌ Download folder not found: {download_folder}")
+        send_telegram_message(
+            bot_token,
+            chat_id,
+            f"Error en process_cantidades_asignadas_servicios_conexos ({market_type}): Download folder not found",
+        )
         return
 
     # Process all CSV files and send to API

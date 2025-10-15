@@ -28,11 +28,14 @@ def process_salidas_adelanto():
 
     if not os.path.exists(download_folder):
         logging.error(f"❌ Download folder not found: {download_folder}")
+        send_telegram_message(
+            bot_token, chat_id, f"Error en process_salidas_adelanto: Download folder not found"
+        )
         return
 
     # Process all CSV files and send to API
     summary = process_all_csv_files_with_api(download_folder, API_ENDPOINT)
-
+    
     # Log final summary
     if "error" in summary:
         logging.error(f"❌ Processing failed: {summary['error']}")
