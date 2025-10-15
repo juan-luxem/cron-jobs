@@ -4,7 +4,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import os
 from ngi_api import ngi
-
 # from demanda import demanda
 from demanda_real_balance import demanda_real_balance
 from pml import pml
@@ -289,8 +288,8 @@ if __name__ == "__main__":
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mda,
         "cron",
         day_of_week="*",  # every day"
-        hour="23",
-        minute="39",  # 20:00
+        hour="20",
+        minute="0",  # 20:00
     )
 
     # Cantidades Asignadas Servicios Conexos MTR
@@ -300,8 +299,8 @@ if __name__ == "__main__":
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mtr,
         "cron",
         day_of_week="*",  # every day"
-        hour="23",
-        minute="41",  # 20:05
+        hour="20",
+        minute="5",  # 20:05
     )
 
     # Asignación por Participante de Mercado
@@ -311,8 +310,8 @@ if __name__ == "__main__":
         asignacion_por_participante_mercado.get_asignacion_por_participante_mercado,
         "cron",
         day_of_week="*",  # every day"
-        hour="23",
-        minute="43",  # 22:00
+        hour="22",
+        minute="0",  # 22:00
     )
 
     # Servicios Conexos por Zona de Reserva
@@ -322,8 +321,8 @@ if __name__ == "__main__":
         servicios_conexos_por_zona_reserva.run_servicios_conexos_por_zona_reserva,
         "cron",
         day_of_week="*",  # every day"
-        hour="23",
-        minute="45",  # 22:05
+        hour="22",
+        minute="5",  # 22:05
     )
 
     # logging.info("process started")
