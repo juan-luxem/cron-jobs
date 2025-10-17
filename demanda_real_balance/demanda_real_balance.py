@@ -16,6 +16,7 @@ import requests
 from config import ENV
 from global_utils.get_selenium_options import get_selenium_options
 from global_utils.send_telegram_message import send_telegram_message
+from global_utils.delete_csv_files_after_process import delete_csv_files_after_process
 
 
 def get_csv_file_id_from_last_release_date_row(
@@ -154,9 +155,7 @@ def get_demanda_real_balance():
             )
             return
 
-        logging.info(f"Data uploaded successfully: {response.json()}")
-
-        logging.info(f"Data extracted: {data_to_send}")
+        logging.info(f"Data uploaded successfully")
         time.sleep(3)  # Wait for the download to start
 
     except Exception as e:
@@ -164,5 +163,6 @@ def get_demanda_real_balance():
         send_telegram_message(bot_token, chat_id, f"Error en demanda_real_balance: {e}")
         return
     finally:
+        delete_csv_files_after_process()
         if driver:
             driver.quit()

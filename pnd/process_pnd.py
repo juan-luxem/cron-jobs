@@ -20,7 +20,7 @@ def process_pnd_data(market_type: str):
 
     # Setup paths and URLs
     API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
-    API_ENDPOINT = f"{API_URL}api/v1/pnd/bulk?market={market_type}"
+    API_ENDPOINT = f"{API_URL}api/v1/pnd?market={market_type}"
     bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
     chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 

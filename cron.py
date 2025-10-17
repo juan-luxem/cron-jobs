@@ -111,23 +111,23 @@ if __name__ == "__main__":
 
     # Run PND MDA
     # Run this script every day at 6:00 AM
-    scheduler.add_job(
-        pnd.get_pml_mda,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="6",
-        minute="0",  # 06:00
-    )
+    # scheduler.add_job(
+    #     pnd.get_pml_mda,
+    #     "cron",
+    #     day_of_week="*",  # every day"
+    #     hour="6",
+    #     minute="0",  # 06:00
+    # )
 
     # Run PND MTR
     # Run this script every day at 6:05 AM
-    scheduler.add_job(
-        pnd.get_pml_mtr,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="6",
-        minute="5",  # 06:05
-    )
+    # scheduler.add_job(
+    #     pnd.get_pml_mtr,
+    #     "cron",
+    #     day_of_week="*",  # every day"
+    #     hour="6",
+    #     minute="5",  # 06:05
+    # )
 
     # Servicios Conexos MDA
     # Run this script every day at 06:10 AM
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         "cron",
         day_of_week="*",  # every day"
         hour="6",
-        minute="24",  # 06:34
+        minute="24",  # 06:24
     )
 
     # Ofertas de Venta – Despachable MTR
@@ -205,6 +205,61 @@ if __name__ == "__main__":
         minute="28",  # 06:28
     )
 
+    # Ofertas de Venta – Recursos Interm Despachables MTR
+    # Run this script every day at 06:30 AM
+    # Checked ✅
+    scheduler.add_job(
+        generacion_idr_ofertada.get_generacion_idr_ofertada_mtr,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="6",
+        minute="30",  # 06:30
+    )
+
+    # Ofertas de Venta – Hidroeléctricas MDA
+    # Run this script every day at 06:32 AM
+    # Checked ✅
+    scheduler.add_job(
+        generacion_hidro_ofertada.get_generacion_hidro_ofertada_mda,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="6",
+        minute="32",  # 06:32
+    )
+
+    # Ofertas de Venta – Hidroeléctricas MTR
+    # Run this script every day at 06:34 AM
+    # Checked ✅
+    scheduler.add_job(
+        generacion_hidro_ofertada.get_generacion_hidro_ofertada_mtr,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="6",
+        minute="34",  # 06:34
+    )
+
+    # Ofertas de Venta – Térmicas MDA
+    # Run this script every day at 06:36 AM
+    # Checked ✅
+    scheduler.add_job(
+        generacion_ofertada.get_generacion_ofertada_mda,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="6",
+        minute="36",  # 06:36
+    )
+
+    # Ofertas de Venta – Térmicas MTR
+    # Run this script every day at 06:38 AM
+    # Checked ✅
+    scheduler.add_job(
+        generacion_ofertada.get_generacion_ofertada_mtr,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="6",
+        minute="38",  # 06:38
+    )
+
     # Capacidad de Transferencia MDA
     # Run this script every day at 9:50 AM
     # Checked ✅
@@ -216,60 +271,6 @@ if __name__ == "__main__":
         minute="50",  # 09:50
     )
 
-    # Ofertas de Venta – Recursos Interm Despachables MTR
-    # Run this script every day at 06:30 AM
-    # Checked ✅
-    scheduler.add_job(
-        generacion_idr_ofertada.get_generacion_idr_ofertada_mtr,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="15",
-        minute="30",  # 06:30
-    )
-    # Ofertas de Venta – Hidroeléctricas MDA
-    # Run this script every day at 06:32 AM
-    # Checked ✅
-    scheduler.add_job(
-        generacion_hidro_ofertada.get_generacion_hidro_ofertada_mda,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="15",
-        minute="32",  # 06:32
-    )
-
-    # Ofertas de Venta – Hidroeléctricas MTR
-    # Run this script every day at 06:34 AM
-    # Checked ✅
-    scheduler.add_job(
-        generacion_hidro_ofertada.get_generacion_hidro_ofertada_mtr,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="15",
-        minute="34",  # 06:34
-    )
-
-    # Ofertas de Venta – Térmicas MDA
-    # Run this script every day at 06:36 AM
-    # Checked ✅
-    scheduler.add_job(
-        generacion_ofertada.get_generacion_ofertada_mda,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="15",
-        minute="36",  # 06:36
-    )
-
-    # Ofertas de Venta – Térmicas MTR
-    # Run this script every day at 06:38 AM
-    # Checked ✅
-    scheduler.add_job(
-        generacion_ofertada.get_generacion_ofertada_mtr,
-        "cron",
-        day_of_week="*",  # every day"
-        hour="15",
-        minute="38",  # 06:38
-    )
-
     # Demanda real balance
     # Run this script every day at 04:25 PM
     # Checked ✅
@@ -278,7 +279,7 @@ if __name__ == "__main__":
         "cron",
         day_of_week="*",  # every day"
         hour="16",
-        minute="25",  # 16:25
+        minute="30",  # 16:25
     )
 
     # Cantidades Asignadas Servicios Conexos MDA

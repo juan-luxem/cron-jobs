@@ -20,7 +20,7 @@ from config import ENV
 MAX_RETRIES = 2  # Total attempts = MAX_RETRIES + 1
 # RETRY_DELAY_SECONDS = 15 # Wait 15 seconds between retries
 
-THRESHOLD_PERCENTAGE = 50.0
+THRESHOLD_PERCENTAGE = 70.0
 
 
 def parse_percentage(percentage_str):

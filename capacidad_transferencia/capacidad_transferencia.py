@@ -27,7 +27,7 @@ def get_capacidad_transferencia():
         return
 
     chrome_options = get_selenium_options(
-        headless=False, download_folder=download_folder
+        headless=True, download_folder=download_folder
     )
     driver = None
     try:
