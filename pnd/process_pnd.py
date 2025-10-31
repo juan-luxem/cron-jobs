@@ -7,7 +7,7 @@ from global_utils.send_telegram_message import send_telegram_message
 logging.basicConfig(level=logging.INFO)
 
 
-def process_pnd_data(market_type: str):
+def process_pnd_data(market_type: str) -> None:
     """
     Processes PND data for the specified market type (MDA or MTR).
 
@@ -20,7 +20,7 @@ def process_pnd_data(market_type: str):
 
     # Setup paths and URLs
     API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
-    API_ENDPOINT = f"{API_URL}api/v1/pnd?market={market_type}"
+    API_ENDPOINT = f"{API_URL}api/v1/pnd/bulk?market={market_type}"
     bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
     chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
@@ -28,9 +28,9 @@ def process_pnd_data(market_type: str):
     download_folder = os.path.join(cwd, "download_folder")
     os.makedirs(download_folder, exist_ok=True)
 
-    logging.info(f"🚀 Starting PND {market_type} data processing")
-    logging.info(f"📁 Download folder: {download_folder}")
-    logging.info(f"🌐 API endpoint: {API_ENDPOINT}")
+    logging.info(f"Starting PND {market_type} data processing")
+    logging.info(f"Download folder: {download_folder}")
+    logging.info(f"API endpoint: {API_ENDPOINT}")
 
     if not os.path.exists(download_folder):
         logging.error(f"❌ Download folder not found: {download_folder}")
@@ -53,13 +53,13 @@ def process_pnd_data(market_type: str):
             f"Error en process_pnd_data ({market_type}): {summary['error']}",
         )
     else:
-        logging.info(f"🎯 Final Summary for {market_type}:")
-        logging.info(f"   ✅ Processed: {summary['processed']}/{summary['total']}")
+        logging.info(f"Final Summary for {market_type}:")
+        logging.info(f"Processed: {summary['processed']}/{summary['total']}")
         logging.info(f"   ❌ Failed: {summary['failed']}/{summary['total']}")
-        logging.info(f"   📂 Remaining: {summary['remaining']}")
+        logging.info(f"Remaining: {summary['remaining']}")
 
         if summary["processed"] == summary["total"] and summary["remaining"] == 0:
-            logging.info(f"🎉 All {market_type} files processed successfully!")
+            logging.info(f"All {market_type} files processed successfully!")
         elif summary["failed"] > 0:
             logging.warning(f"⚠️ Some {market_type} files failed to process")
             send_telegram_message(
@@ -67,5 +67,3 @@ def process_pnd_data(market_type: str):
                 chat_id,
                 f"Fallo en process_pnd_data ({market_type}): {summary['failed']} de {summary['total']} archivos.",
             )
-
-    return summary
