@@ -4,9 +4,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import os
 from ngi_api import ngi
+
 # from demanda import demanda
 from demanda_real_balance import demanda_real_balance
 from pml import pml
+
 from pnd import pnd
 from servicios_conexos import servicios_conexos
 from generacion_gi_ofertada import generacion_gi_ofertada
@@ -54,8 +56,8 @@ if __name__ == "__main__":
     )
 
     # NGI API
-    # Run this script from monday to friday at 8:00 AM
-    scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=8, minute=0)
+    # Run this script from monday to friday at 8:02 AM
+    scheduler.add_job(ngi.get_ngi_data, "cron", day_of_week="mon-fri", hour=8, minute=2)
 
     # Demanda tiempo real
     # Run this script every day from 8:00 AM to 11:55 PM
@@ -111,23 +113,23 @@ if __name__ == "__main__":
 
     # Run PND MDA
     # Run this script every day at 6:00 AM
-    # scheduler.add_job(
-    #     pnd.get_pml_mda,
-    #     "cron",
-    #     day_of_week="*",  # every day"
-    #     hour="6",
-    #     minute="0",  # 06:00
-    # )
+    scheduler.add_job(
+        pnd.get_pnd_mda,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="6",
+        minute="0",  # 06:00
+    )
 
     # Run PND MTR
     # Run this script every day at 6:05 AM
-    # scheduler.add_job(
-    #     pnd.get_pml_mtr,
-    #     "cron",
-    #     day_of_week="*",  # every day"
-    #     hour="6",
-    #     minute="5",  # 06:05
-    # )
+    scheduler.add_job(
+        pnd.get_pnd_mtr,
+        "cron",
+        day_of_week="*",  # every day"
+        hour="6",
+        minute="5",  # 06:05
+    )
 
     # Servicios Conexos MDA
     # Run this script every day at 06:10 AM
@@ -279,51 +281,51 @@ if __name__ == "__main__":
         "cron",
         day_of_week="*",  # every day"
         hour="16",
-        minute="30",  # 16:25
+        minute="25",  # 16:25
     )
 
     # Cantidades Asignadas Servicios Conexos MDA
-    # Run this script every day at 8:00 PM
+    # Run this script every day at 8:04 PM
     # Checked ✅
     scheduler.add_job(
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mda,
         "cron",
         day_of_week="*",  # every day"
         hour="20",
-        minute="0",  # 20:00
+        minute="4",  # 20:04
     )
 
     # Cantidades Asignadas Servicios Conexos MTR
-    # Run this script every day at 8:05 PM
+    # Run this script every day at 8:07 PM
     # Checked ✅
     scheduler.add_job(
         cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mtr,
         "cron",
         day_of_week="*",  # every day"
         hour="20",
-        minute="5",  # 20:05
+        minute="7",  # 20:07
     )
 
     # Asignación por Participante de Mercado
-    # Run this script every day at 10:00 PM
+    # Run this script every day at 10:05 PM
     # Checked ✅
     scheduler.add_job(
         asignacion_por_participante_mercado.get_asignacion_por_participante_mercado,
         "cron",
         day_of_week="*",  # every day"
         hour="22",
-        minute="0",  # 22:00
+        minute="5",  # 22:05
     )
 
     # Servicios Conexos por Zona de Reserva
-    # Run this script every day at 10:05 PM
+    # Run this script every day at 10:08 PM
     # Checked ✅
     scheduler.add_job(
         servicios_conexos_por_zona_reserva.run_servicios_conexos_por_zona_reserva,
         "cron",
         day_of_week="*",  # every day"
         hour="22",
-        minute="5",  # 22:05
+        minute="8",  # 22:08
     )
 
     # logging.info("process started")
