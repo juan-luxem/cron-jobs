@@ -8,7 +8,6 @@ from ngi_api import ngi
 # from demanda import demanda
 from demanda_real_balance import demanda_real_balance
 from pml import pml
-
 from pnd import pnd
 from servicios_conexos import servicios_conexos
 from generacion_gi_ofertada import generacion_gi_ofertada
