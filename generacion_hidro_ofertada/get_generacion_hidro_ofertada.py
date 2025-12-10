@@ -1,0 +1,236 @@
+import logging
+import os
+import requests
+import urllib.parse
+from bs4 import BeautifulSoup
+from global_utils.extract_field_value import extract_field_value
+from global_utils.extract_viewstate import extract_viewstate
+from global_utils.send_telegram_message import send_telegram_message
+from global_utils.download_zip import download_zip
+from constants import (
+    HEADERS,
+)
+from generacion_hidro_ofertada.constants import (
+    SISTEMAS,
+    URL,
+    ID_REPORT,
+    MIN_DATE,
+    VIEW_GENERATOR,
+)
+
+# --- Logger Setup ---
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+
+def get_generacion_hidro_ofertada(market_type: str):
+    """
+    Generic function to download Ofertas de Venta – Hidroeléctricas data
+    from CENACE for any market type using requests (replacing Selenium).
+
+    Specifics:
+    - Only processes 'SIN' system.
+    - Requires an explicit step to switch Periodicity to 'H' (Hourly).
+    """
+    # --- Setup Download Folder ---
+    cwd = os.getcwd()
+    download_folder = os.path.join(cwd, "download_folder")
+    os.makedirs(download_folder, exist_ok=True)
+
+    # CENACE defaults to SIN when loading the page
+    DEFAULT_SYSTEM_ON_LOAD = "SIN"
+
+    for sistema in SISTEMAS:
+        logging.info(f"Processing System: {sistema}")
+
+        try:
+            # 1. Start a FRESH session
+            session = requests.session()
+            response = session.get(
+                URL[market_type], headers={"User-Agent": "Mozilla/5.0"}, timeout=30
+            )
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            view_state = extract_field_value(soup, "__VIEWSTATE", "input")
+            period = extract_field_value(
+                soup, "ctl00$ContentPlaceHolder1$txtPeriodo", "input"
+            )
+            date = extract_field_value(
+                soup, "ctl00$ContentPlaceHolder1$hdfStartDateSelected", "input"
+            )
+
+            # ---------------------------------------------------------
+            # STEP 1: Select Report Type (Async)
+            # Default to "D", SIN
+            # ---------------------------------------------------------
+            data_report = {
+                "ctl00$ContentPlaceHolder1$ScriptManager": "ctl00$ContentPlaceHolder1$ScriptManager|ctl00$ContentPlaceHolder1$ddlReporte",
+                "ctl00$ContentPlaceHolder1$ddlReporte": ID_REPORT[market_type],
+                "ctl00$ContentPlaceHolder1$ddlPeriodicidad": "D",
+                "ctl00$ContentPlaceHolder1$ddlSistema": DEFAULT_SYSTEM_ON_LOAD,
+                "ctl00$ContentPlaceHolder1$txtPeriodo": period,
+                "ctl00$ContentPlaceHolder1$hdfStartDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfEndDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfMinDateToSelect": MIN_DATE[market_type],
+                "ctl00$ContentPlaceHolder1$hdfMaxDateToSelect": date,
+                "__EVENTTARGET": "ctl00$ContentPlaceHolder1$ddlReporte",
+                "__EVENTARGUMENT": "",
+                "__LASTFOCUS": "",
+                "__VIEWSTATE": view_state,
+                "__VIEWSTATEGENERATOR": VIEW_GENERATOR[market_type],
+                "__VIEWSTATEENCRYPTED": "",
+                "__ASYNCPOST": "true",
+                "": "",
+            }
+
+            response = session.post(
+                URL[market_type], headers=HEADERS, data=data_report, timeout=30
+            )
+            response.raise_for_status()
+            view_state = extract_viewstate(response.text)
+
+            # ---------------------------------------------------------
+            # STEP 2: Update Period/ViewState (Async)
+            # ---------------------------------------------------------
+            data_update = {
+                "ctl00$ContentPlaceHolder1$ScriptManager": "ctl00$ContentPlaceHolder1$ScriptManager|ctl00$ContentPlaceHolder1$txtPeriodo",
+                "ctl00$ContentPlaceHolder1$ddlReporte": ID_REPORT[market_type],
+                "ctl00$ContentPlaceHolder1$ddlPeriodicidad": "D",
+                "ctl00$ContentPlaceHolder1$ddlSistema": sistema,
+                "ctl00$ContentPlaceHolder1$txtPeriodo": period,
+                "ctl00$ContentPlaceHolder1$hdfStartDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfEndDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfMinDateToSelect": MIN_DATE[market_type],
+                "ctl00$ContentPlaceHolder1$hdfMaxDateToSelect": date,
+                "__EVENTTARGET": "ctl00$ContentPlaceHolder1$txtPeriodo",
+                "__EVENTARGUMENT": "",
+                "__LASTFOCUS": "",
+                "__VIEWSTATE": view_state,
+                "__VIEWSTATEGENERATOR": VIEW_GENERATOR[market_type],
+                "__VIEWSTATEENCRYPTED": "",
+                "__ASYNCPOST": "true",
+                "": "",
+            }
+
+            response = session.post(
+                URL[market_type], headers=HEADERS, data=data_update, timeout=30
+            )
+            response.raise_for_status()
+            view_state = extract_viewstate(response.text)
+
+            # ---------------------------------------------------------
+            # STEP 3: Switch to Hourly (H) (Async)
+            # IMPORTANT: Specific ScriptManager target
+            # ---------------------------------------------------------
+            data_hourly = {
+                "ctl00$ContentPlaceHolder1$ScriptManager": "ctl00$ContentPlaceHolder1$upSeccionA|ctl00$ContentPlaceHolder1$ddlPeriodicidad",
+                "ctl00$ContentPlaceHolder1$ddlReporte": ID_REPORT[market_type],
+                "ctl00$ContentPlaceHolder1$ddlPeriodicidad": "H",  # Changing to Hourly
+                "ctl00$ContentPlaceHolder1$ddlSistema": sistema,
+                "ctl00$ContentPlaceHolder1$txtPeriodo": period,
+                "ctl00$ContentPlaceHolder1$hdfStartDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfEndDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfMinDateToSelect": MIN_DATE[market_type],
+                "ctl00$ContentPlaceHolder1$hdfMaxDateToSelect": date,
+                "__EVENTTARGET": "ctl00$ContentPlaceHolder1$ddlPeriodicidad",
+                "__EVENTARGUMENT": "",
+                "__LASTFOCUS": "",
+                "__VIEWSTATE": view_state,
+                "__VIEWSTATEGENERATOR": VIEW_GENERATOR[market_type],
+                "__VIEWSTATEENCRYPTED": "",
+                "__ASYNCPOST": "true",
+                "": "",
+            }
+
+            response = session.post(
+                URL[market_type], headers=HEADERS, data=data_hourly, timeout=30
+            )
+            response.raise_for_status()
+            view_state = extract_viewstate(response.text)
+
+            # ---------------------------------------------------------
+            # STEP 4: Update Period/ViewState Again (Async)
+            # Confirms the H state
+            # ---------------------------------------------------------
+            data_final_update = {
+                "ctl00$ContentPlaceHolder1$ScriptManager": "ctl00$ContentPlaceHolder1$ScriptManager|ctl00$ContentPlaceHolder1$txtPeriodo",
+                "ctl00$ContentPlaceHolder1$ddlReporte": ID_REPORT[market_type],
+                "ctl00$ContentPlaceHolder1$ddlPeriodicidad": "H",  # Keep H
+                "ctl00$ContentPlaceHolder1$ddlSistema": sistema,
+                "ctl00$ContentPlaceHolder1$txtPeriodo": period,
+                "ctl00$ContentPlaceHolder1$hdfStartDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfEndDateSelected": date,
+                "ctl00$ContentPlaceHolder1$hdfMinDateToSelect": MIN_DATE[market_type],
+                "ctl00$ContentPlaceHolder1$hdfMaxDateToSelect": date,
+                "__EVENTTARGET": "ctl00$ContentPlaceHolder1$txtPeriodo",
+                "__EVENTARGUMENT": "",
+                "__LASTFOCUS": "",
+                "__VIEWSTATE": view_state,
+                "__VIEWSTATEGENERATOR": VIEW_GENERATOR[market_type],
+                "__VIEWSTATEENCRYPTED": "",
+                "__ASYNCPOST": "true",
+                "": "",
+            }
+
+            response = session.post(
+                URL[market_type], headers=HEADERS, data=data_final_update, timeout=30
+            )
+            response.raise_for_status()
+
+            # Prepare final ViewState
+            new_view_state_value = extract_viewstate(response.text, url_encode=True)
+
+            period_encoded = urllib.parse.quote_plus(str(period), safe="")
+            date_encoded = urllib.parse.quote_plus(str(date), safe="")
+            id_report_encoded = urllib.parse.quote_plus(
+                str(ID_REPORT[market_type]), safe=""
+            )
+            min_date_encoded = urllib.parse.quote_plus(
+                str(MIN_DATE[market_type]), safe=""
+            )
+
+            # ---------------------------------------------------------
+            # STEP 5: Download ZIP (Full Postback)
+            # Periodicidad=H
+            # ---------------------------------------------------------
+            nodos_data = (
+                f"ctl00%24ContentPlaceHolder1%24ddlReporte={id_report_encoded}&"
+                f"ctl00%24ContentPlaceHolder1%24ddlPeriodicidad=H&"  # Hourly
+                f"ctl00%24ContentPlaceHolder1%24ddlSistema={sistema}&"
+                f"ctl00%24ContentPlaceHolder1%24txtPeriodo={period_encoded}&"
+                f"ctl00%24ContentPlaceHolder1%24hdfStartDateSelected={date_encoded}&"
+                f"ctl00%24ContentPlaceHolder1%24hdfEndDateSelected={date_encoded}&"
+                f"ctl00%24ContentPlaceHolder1%24hdfMinDateToSelect={min_date_encoded}&"
+                f"ctl00%24ContentPlaceHolder1%24hdfMaxDateToSelect={date_encoded}&"
+                f"ctl00%24ContentPlaceHolder1%24btnDescargarZIP=Descargar+ZIP&"
+                f"__EVENTTARGET=&__EVENTARGUMENT=&__LASTFOCUS=&"
+                f"__VIEWSTATE={new_view_state_value}&"
+                f"__VIEWSTATEGENERATOR={VIEW_GENERATOR[market_type]}&"
+                f"__VIEWSTATEENCRYPTED="
+            )
+
+            response = session.post(
+                URL[market_type], headers=HEADERS, data=nodos_data, timeout=30
+            )
+            response.raise_for_status()
+
+            if response.status_code == 200:
+                content_disposition = response.headers.get("Content-Disposition", "")
+                download_zip(content_disposition, download_folder, response)
+            else:
+                error_msg = f"La solicitud falló con el código de estado: {response.status_code}"
+                logging.error(error_msg)
+                send_telegram_message(message=error_msg)
+
+        except requests.Timeout:
+            error_msg = f"Timeout error while fetching data for system {sistema}"
+            logging.error(error_msg)
+            send_telegram_message(message=error_msg)
+            continue
+        except Exception as e:
+            error_msg = f"Unexpected error processing system {sistema}: {e}"
+            logging.error(error_msg)
+            send_telegram_message(message=error_msg)
+            continue
