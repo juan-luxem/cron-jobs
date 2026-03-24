@@ -1,18 +1,19 @@
-from config import ENV
-import os
 import logging
+import os
+from io import StringIO
 from typing import Dict, List
+
 import pandas as pd
+
+from config import ENV
 from global_utils import (
-    send_data_in_chunks,
-    find_header_row,
     clean_column_names,
     extract_fecha_operacion_from_filename,
     extract_sistema_from_filename,
+    find_header_row,
+    send_data_in_chunks,
     send_telegram_message,
 )
-
-from io import StringIO
 
 logging.basicConfig(level=logging.INFO)
 
@@ -111,10 +112,6 @@ def process_csv_file(file_path: str) -> List[Dict]:
     # Rename columns to match target structure
     df = rename_columns_to_target_structure(df)
 
-    # Add Sistema and FechaOperacion to each row
-    df["Sistema"] = sistema
-    df["FechaOperacion"] = fecha_operacion
-
     # Convert to list of dictionaries
     result = []
     for _, row in df.iterrows():
@@ -142,8 +139,30 @@ def process_csv_file(file_path: str) -> List[Dict]:
             logging.warning(f"Error processing row in {filename}: {e}")
             continue
 
-    logging.info(f"Processed {len(result)} records from {filename}")
-    return result
+    # Remove duplicates - keep the first occurrence of each (HoraOperacion, ZonaCarga) combination
+    # This handles cases where hour 2 appears twice and the first one is the correct data
+    initial_count = len(result)
+    seen_keys = {}
+
+    for record in result:
+        key = (record["HoraOperacion"], record["ZonaCarga"])
+        # Only keep the first occurrence
+        if key not in seen_keys:
+            seen_keys[key] = record
+
+    # Convert back to list, sorted by ZonaCarga and HoraOperacion for consistency
+    deduplicated_result = sorted(
+        seen_keys.values(), key=lambda x: (x["ZonaCarga"], x["HoraOperacion"])
+    )
+
+    duplicates_removed = initial_count - len(deduplicated_result)
+    if duplicates_removed > 0:
+        logging.warning(
+            f"⚠️  Removed {duplicates_removed} duplicate hour entries from {filename}"
+        )
+
+    logging.info(f"Processed {len(deduplicated_result)} unique records from {filename}")
+    return deduplicated_result
 
 
 def process_and_send_csv_file(file_path: str, endpoint_url: str) -> bool:
@@ -182,11 +201,18 @@ def process_and_send_csv_file(file_path: str, endpoint_url: str) -> bool:
 
 
 def process_all_csv_files_with_api(
-    download_folder: str, endpoint_url: str
-) -> Dict[str, int]:
+    download_folder: str,
+    endpoint_url: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> Dict:
     """
-    Processes all CSV files in the download folder, sends to API, and deletes successful files.
-    Validates that exactly 3 CSV files are present (one for each system: SIN, BCS, BCA).
+    Processes all CSV files in the download folder and sends them to the API.
+
+    Validation:
+    - If start_date and end_date are NONE (Cron mode): Validates exactly 3 files (SIN, BCS, BCA).
+    - If dates ARE provided (Bulk mode): Skips strict count validation.
+
     Returns a summary of processed vs failed files.
     """
     bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
@@ -195,62 +221,70 @@ def process_all_csv_files_with_api(
     # Get all CSV files in the download folder
     csv_files = [f for f in os.listdir(download_folder) if f.endswith(".csv")]
 
-    # Validate exactly 3 CSV files
-    if len(csv_files) != 3:
-        error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
-        logging.error(error_msg)
-        send_telegram_message(bot_token, chat_id, error_msg)
-        # Clean up files on validation error
+    # Validate exactly 3 CSV files only if we are in "Default/Cron" mode (no specific dates)
+    if start_date is None and end_date is None:
+        if len(csv_files) != 3:
+            error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
+            logging.error(error_msg)
+            send_telegram_message(bot_token, chat_id, error_msg)
+            # Clean up files on validation error
+            for csv_file in csv_files:
+                file_path = os.path.join(download_folder, csv_file)
+                try:
+                    os.remove(file_path)
+                    logging.info(f"Removed file after validation error: {file_path}")
+                except OSError as e:
+                    logging.warning(f"Failed to remove file {file_path}: {e}")
+            if len(csv_files) == 0:
+                logging.info("ℹ️ No CSV files found in download folder")
+            else:
+                logging.info(f"📁 Found files: {csv_files}")
+            return {
+                "processed": 0,
+                "failed": 0,
+                "total": len(csv_files),
+                "error": error_msg,
+            }
+
+        logging.info(
+            f"📁 Found {len(csv_files)} CSV files to process (validation passed)"
+        )
+
+        # Verify we have one file for each system
+        found_systems = set()
         for csv_file in csv_files:
-            file_path = os.path.join(download_folder, csv_file)
-            try:
-                os.remove(file_path)
-                logging.info(f"Removed file after validation error: {file_path}")
-            except OSError as e:
-                logging.warning(f"Failed to remove file {file_path}: {e}")
-        if len(csv_files) == 0:
-            logging.info("ℹ️ No CSV files found in download folder")
-        else:
-            logging.info(f"📁 Found files: {csv_files}")
-        return {
-            "processed": 0,
-            "failed": 0,
-            "total": len(csv_files),
-            "error": error_msg,
-        }
+            sistema = extract_sistema_from_filename(csv_file)
+            if sistema:
+                found_systems.add(sistema)
 
-    logging.info(f"📁 Found {len(csv_files)} CSV files to process (validation passed)")
+        expected_systems = {"SIN", "BCS", "BCA"}
+        if found_systems != expected_systems:
+            missing_systems = expected_systems - found_systems
+            extra_systems = found_systems - expected_systems
+            error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
+            logging.error(error_msg)
+            send_telegram_message(bot_token, chat_id, error_msg)
+            # Clean up files on validation error
+            for csv_file in csv_files:
+                file_path = os.path.join(download_folder, csv_file)
+                try:
+                    os.remove(file_path)
+                    logging.info(f"Removed file after validation error: {file_path}")
+                except OSError as e:
+                    logging.warning(f"Failed to remove file {file_path}: {e}")
+            return {
+                "processed": 0,
+                "failed": 0,
+                "total": len(csv_files),
+                "error": error_msg,
+            }
 
-    # Verify we have one file for each system
-    found_systems = set()
-    for csv_file in csv_files:
-        sistema = extract_sistema_from_filename(csv_file)
-        if sistema:
-            found_systems.add(sistema)
-
-    expected_systems = {"SIN", "BCS", "BCA"}
-    if found_systems != expected_systems:
-        missing_systems = expected_systems - found_systems
-        extra_systems = found_systems - expected_systems
-        error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
-        logging.error(error_msg)
-        send_telegram_message(bot_token, chat_id, error_msg)
-        # Clean up files on validation error
-        for csv_file in csv_files:
-            file_path = os.path.join(download_folder, csv_file)
-            try:
-                os.remove(file_path)
-                logging.info(f"Removed file after validation error: {file_path}")
-            except OSError as e:
-                logging.warning(f"Failed to remove file {file_path}: {e}")
-        return {
-            "processed": 0,
-            "failed": 0,
-            "total": len(csv_files),
-            "error": error_msg,
-        }
-
-    logging.info(f"✅ System validation passed: Found files for {found_systems}")
+        logging.info(f"✅ System validation passed: Found files for {found_systems}")
+    else:
+        # Bulk mode
+        logging.info(
+            f"🚀 Bulk Processing Mode: Found {len(csv_files)} CSV files to process."
+        )
 
     processed_count = 0
     failed_count = 0
