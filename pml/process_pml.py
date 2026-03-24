@@ -1,18 +1,24 @@
-from config import ENV
-import os
 import logging
-from pml.extract_data_from_csv import process_all_csv_files_with_api
+import os
+
+from config import ENV
+from global_utils import get_download_folder
 from global_utils.send_telegram_message import send_telegram_message
+from pml.extract_data_from_csv import process_all_csv_files_with_api
 
 logging.basicConfig(level=logging.INFO)
 
 
-def process_pml_data(market_type: str):
+def process_pml_data(
+    market_type: str, start_date: str | None = None, end_date: str | None = None
+):
     """
     Processes PML data for the specified market type (MDA or MTR).
 
     Args:
         market_type (str): 'MDA' or 'MTR'
+        start_date (str, optional): Start date for processing (bulk mode)
+        end_date (str, optional): End date for processing (bulk mode)
     """
     if market_type not in ["MDA", "MTR"]:
         logging.error(f"❌ Invalid market type: {market_type}. Use 'MDA' or 'MTR'.")
@@ -24,8 +30,7 @@ def process_pml_data(market_type: str):
     bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
     chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
-    cwd = os.getcwd()
-    download_folder = os.path.join(cwd, "download_folder")
+    download_folder = get_download_folder(start_date=start_date, end_date=end_date)
     os.makedirs(download_folder, exist_ok=True)
 
     logging.info(f"🚀 Starting PML {market_type} data processing")
@@ -42,7 +47,9 @@ def process_pml_data(market_type: str):
         return
 
     # Process all CSV files and send to API
-    summary = process_all_csv_files_with_api(download_folder, API_ENDPOINT)
+    summary = process_all_csv_files_with_api(
+        download_folder, API_ENDPOINT, start_date=start_date, end_date=end_date
+    )
 
     # Log final summary
     if "error" in summary:
