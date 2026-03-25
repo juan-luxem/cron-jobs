@@ -1,4 +1,7 @@
+import logging
+
 from global_utils.delete_csv_files_after_process import delete_csv_files_after_process
+from global_utils.notify_error import notify_error
 from pml.download_pml_files import download_pml_files
 from pml.process_pml import process_pml_data
 
@@ -15,19 +18,22 @@ def get_pml_mda(**kwargs):
     start_date = kwargs.get("start_date")
     end_date = kwargs.get("end_date")
     sistema = kwargs.get("sistema")
-    download_pml_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
-    print("downloaded PML MDA files")
 
-    # Intentamos pasar los argumentos de fecha por si process_pml_data ya los soporta,
-    # si no (como en la versión actual), llamamos sin ellos temporalmente hasta que lo migremos.
-    try:
-        process_pml_data("MDA", start_date=start_date, end_date=end_date)
-    except TypeError:
-        process_pml_data("MDA")
+    if bool(start_date) != bool(end_date):
+        notify_error(
+            f"[PML MDA] Error de validacion: start_date y end_date deben proporcionarse juntos. "
+            f"Recibido: start_date={start_date!r}, end_date={end_date!r}"
+        )
+        return
+
+    download_pml_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
+    logging.info("Downloaded PML MDA files")
+
+    process_pml_data("MDA", start_date=start_date, end_date=end_date)
 
     if not start_date and not end_date:
         delete_csv_files_after_process()
-    print("PML MDA process started.")
+    logging.info("PML MDA process finished.")
 
 
 def get_pml_mtr(**kwargs):
@@ -42,13 +48,19 @@ def get_pml_mtr(**kwargs):
     start_date = kwargs.get("start_date")
     end_date = kwargs.get("end_date")
     sistema = kwargs.get("sistema")
-    download_pml_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
 
-    try:
-        process_pml_data("MTR", start_date=start_date, end_date=end_date)
-    except TypeError:
-        process_pml_data("MTR")
+    if bool(start_date) != bool(end_date):
+        notify_error(
+            f"[PML MTR] Error de validacion: start_date y end_date deben proporcionarse juntos. "
+            f"Recibido: start_date={start_date!r}, end_date={end_date!r}"
+        )
+        return
+
+    download_pml_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
+    logging.info("Downloaded PML MTR files")
+
+    process_pml_data("MTR", start_date=start_date, end_date=end_date)
 
     if not start_date and not end_date:
         delete_csv_files_after_process()
-    print("PML MTR process started.")
+    logging.info("PML MTR process finished.")

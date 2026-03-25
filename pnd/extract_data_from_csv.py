@@ -5,12 +5,12 @@ from typing import Dict, List
 
 import pandas as pd
 
-from config import ENV
 from global_utils import (
     clean_column_names,
     extract_fecha_operacion_from_filename,
     extract_sistema_from_filename,
     find_header_row,
+    notify_error,
     send_data_in_chunks,
     send_telegram_message,
 )
@@ -215,19 +215,25 @@ def process_all_csv_files_with_api(
 
     Returns a summary of processed vs failed files.
     """
-    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
-    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
-
     # Get all CSV files in the download folder
     csv_files = [f for f in os.listdir(download_folder) if f.endswith(".csv")]
 
     # Validate exactly 3 CSV files only if we are in "Default/Cron" mode (no specific dates)
     if start_date is None and end_date is None:
         if len(csv_files) != 3:
-            error_msg = f"❌ Expected exactly 3 CSV files (one for each system: SIN, BCS, BCA), but found {len(csv_files)} files"
-            logging.error(error_msg)
-            send_telegram_message(bot_token, chat_id, error_msg)
-            # Clean up files on validation error
+            if len(csv_files) == 0:
+                error_msg = (
+                    "[PND] No se encontraron archivos CSV en la carpeta de descarga. "
+                    f"Carpeta: {download_folder}. "
+                    "Se esperaban 3 archivos (uno por sistema: SIN, BCS, BCA)."
+                )
+            else:
+                error_msg = (
+                    f"[PND] Se esperaban exactamente 3 archivos CSV (SIN, BCS, BCA) pero se encontraron {len(csv_files)}. "
+                    f"Archivos: {csv_files}. "
+                    f"Carpeta: {download_folder}."
+                )
+            notify_error(error_msg)
             for csv_file in csv_files:
                 file_path = os.path.join(download_folder, csv_file)
                 try:
@@ -235,10 +241,6 @@ def process_all_csv_files_with_api(
                     logging.info(f"Removed file after validation error: {file_path}")
                 except OSError as e:
                     logging.warning(f"Failed to remove file {file_path}: {e}")
-            if len(csv_files) == 0:
-                logging.info("ℹ️ No CSV files found in download folder")
-            else:
-                logging.info(f"📁 Found files: {csv_files}")
             return {
                 "processed": 0,
                 "failed": 0,
@@ -261,10 +263,13 @@ def process_all_csv_files_with_api(
         if found_systems != expected_systems:
             missing_systems = expected_systems - found_systems
             extra_systems = found_systems - expected_systems
-            error_msg = f"❌ System validation failed. Missing: {missing_systems}, Extra: {extra_systems}"
-            logging.error(error_msg)
-            send_telegram_message(bot_token, chat_id, error_msg)
-            # Clean up files on validation error
+            error_msg = (
+                f"[PND] Validacion de sistemas fallida. "
+                f"Faltantes: {missing_systems}. "
+                f"Extra: {extra_systems}. "
+                f"Archivos encontrados: {csv_files}."
+            )
+            notify_error(error_msg)
             for csv_file in csv_files:
                 file_path = os.path.join(download_folder, csv_file)
                 try:

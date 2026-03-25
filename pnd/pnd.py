@@ -1,4 +1,7 @@
+import logging
+
 from global_utils.delete_csv_files_after_process import delete_csv_files_after_process
+from global_utils.notify_error import notify_error
 from pnd.download_pnd_files import download_pnd_files
 from pnd.process_pnd import process_pnd_data
 
@@ -16,19 +19,21 @@ def get_pnd_mda(**kwargs):
     end_date = kwargs.get("end_date")
     sistema = kwargs.get("sistema")
 
-    download_pnd_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
-    print("Downloaded PND MDA files")
+    if bool(start_date) != bool(end_date):
+        notify_error(
+            f"[PND MDA] Error de validacion: start_date y end_date deben proporcionarse juntos. "
+            f"Recibido: start_date={start_date!r}, end_date={end_date!r}"
+        )
+        return
 
-    # Try passing dates in case process_pnd_data supports them,
-    # fallback to original call signature if it hasn't been migrated yet.
-    try:
-        process_pnd_data("MDA", start_date=start_date, end_date=end_date)
-    except TypeError:
-        process_pnd_data("MDA")
+    download_pnd_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
+    logging.info("Downloaded PND MDA files")
+
+    process_pnd_data("MDA", start_date=start_date, end_date=end_date)
 
     if not start_date and not end_date:
         delete_csv_files_after_process()
-    print("PND MDA process finished.")
+    logging.info("PND MDA process finished.")
 
 
 def get_pnd_mtr(**kwargs):
@@ -44,14 +49,18 @@ def get_pnd_mtr(**kwargs):
     end_date = kwargs.get("end_date")
     sistema = kwargs.get("sistema")
 
-    download_pnd_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
-    print("Downloaded PND MTR files")
+    if bool(start_date) != bool(end_date):
+        notify_error(
+            f"[PND MTR] Error de validacion: start_date y end_date deben proporcionarse juntos. "
+            f"Recibido: start_date={start_date!r}, end_date={end_date!r}"
+        )
+        return
 
-    try:
-        process_pnd_data("MTR", start_date=start_date, end_date=end_date)
-    except TypeError:
-        process_pnd_data("MTR")
+    download_pnd_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
+    logging.info("Downloaded PND MTR files")
+
+    process_pnd_data("MTR", start_date=start_date, end_date=end_date)
 
     if not start_date and not end_date:
         delete_csv_files_after_process()
-    print("PND MTR process finished.")
+    logging.info("PND MTR process finished.")

@@ -1,14 +1,9 @@
-import requests
 import logging
-from config import ENV
 
-bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
-chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
+import requests
 
 
-def send_telegram_message(
-    bot_token: str = bot_token, chat_id: str = chat_id, message: str = ""
-):
+def send_telegram_message(bot_token: str, chat_id: str, message: str = ""):
     """Send a message to a Telegram chat."""
     try:
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={chat_id}&text={message}"
@@ -20,8 +15,8 @@ def send_telegram_message(
 
 
 def send_telegram_image(
-    bot_token: str = bot_token,
-    chat_id: str = chat_id,
+    bot_token: str,
+    chat_id: str,
     image_path: str = "",
     caption=None,
 ):

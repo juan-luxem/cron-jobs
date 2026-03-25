@@ -1,9 +1,8 @@
 import logging
-import os
 
 from config import ENV
 from global_utils import get_download_folder
-from global_utils.send_telegram_message import send_telegram_message
+from global_utils.notify_error import notify_error
 from pnd.extract_data_from_csv import process_all_csv_files_with_api
 
 logging.basicConfig(level=logging.INFO)
@@ -21,30 +20,19 @@ def process_pnd_data(
         end_date (str, optional): End date for processing (bulk mode)
     """
     if market_type not in ["MDA", "MTR"]:
-        logging.error(f"❌ Invalid market type: {market_type}. Use 'MDA' or 'MTR'.")
+        notify_error(f"[PND] Tipo de mercado invalido: '{market_type}'. Se esperaba 'MDA' o 'MTR'.")
         return
 
     # Setup paths and URLs
     API_URL = str(ENV.API_URL)  # Convert to string if it's an HttpUrl
     API_ENDPOINT = f"{API_URL}api/v1/pnd/bulk?market={market_type}"
-    bot_token = ENV.TELEGRAM_BOT_GAS_NOTIFIER_TOKEN.get_secret_value()
-    chat_id = ENV.TELEGRAM_GROUP_CHAT_ID
 
     download_folder = get_download_folder(start_date=start_date, end_date=end_date)
-    os.makedirs(download_folder, exist_ok=True)
+    date_range_info = f"{start_date} - {end_date}" if start_date and end_date else "fecha actual (modo cron)"
 
     logging.info(f"🚀 Starting PND {market_type} data processing")
     logging.info(f"📁 Download folder: {download_folder}")
     logging.info(f"🌐 API endpoint: {API_ENDPOINT}")
-
-    if not os.path.exists(download_folder):
-        logging.error(f"❌ Download folder not found: {download_folder}")
-        send_telegram_message(
-            bot_token,
-            chat_id,
-            f"Error en process_pnd_data ({market_type}): Download folder not found",
-        )
-        return
 
     # Process all CSV files and send to API
     summary = process_all_csv_files_with_api(
@@ -53,11 +41,10 @@ def process_pnd_data(
 
     # Log final summary
     if "error" in summary:
-        logging.error(f"❌ Processing failed: {summary['error']}")
-        send_telegram_message(
-            bot_token,
-            chat_id,
-            f"Error en process_pnd_data ({market_type}): {summary['error']}",
+        notify_error(
+            f"[PND {market_type}] Error al procesar archivos CSV. "
+            f"Rango: {date_range_info}. "
+            f"Detalle: {summary['error']}"
         )
     else:
         logging.info(f"🎯 Final Summary for {market_type}:")
@@ -68,11 +55,10 @@ def process_pnd_data(
         if summary["processed"] == summary["total"] and summary["remaining"] == 0:
             logging.info(f"🎉 All {market_type} files processed successfully!")
         elif summary["failed"] > 0:
-            logging.warning(f"⚠️ Some {market_type} files failed to process")
-            send_telegram_message(
-                bot_token,
-                chat_id,
-                f"Fallo en process_pnd_data ({market_type}): {summary['failed']} de {summary['total']} archivos.",
+            notify_error(
+                f"[PND {market_type}] Fallo al procesar {summary['failed']} de {summary['total']} archivos. "
+                f"Rango: {date_range_info}. "
+                f"Archivos restantes en carpeta: {summary['remaining']}."
             )
 
     return summary
