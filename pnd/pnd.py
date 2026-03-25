@@ -26,14 +26,17 @@ def get_pnd_mda(**kwargs):
         )
         return
 
-    download_pnd_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
-    logging.info("Downloaded PND MDA files")
+    try:
+        download_pnd_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
+        logging.info("Downloaded PND MDA files")
 
-    process_pnd_data("MDA", start_date=start_date, end_date=end_date)
+        process_pnd_data("MDA", start_date=start_date, end_date=end_date)
 
-    if not start_date and not end_date:
-        delete_csv_files_after_process()
-    logging.info("PND MDA process finished.")
+        if not start_date and not end_date:
+            delete_csv_files_after_process()
+        logging.info("PND MDA process finished.")
+    except Exception as e:
+        notify_error(f"[PND MDA] Error inesperado en la ejecucion: {e}")
 
 
 def get_pnd_mtr(**kwargs):
@@ -56,11 +59,14 @@ def get_pnd_mtr(**kwargs):
         )
         return
 
-    download_pnd_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
-    logging.info("Downloaded PND MTR files")
+    try:
+        download_pnd_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
+        logging.info("Downloaded PND MTR files")
 
-    process_pnd_data("MTR", start_date=start_date, end_date=end_date)
+        process_pnd_data("MTR", start_date=start_date, end_date=end_date)
 
-    if not start_date and not end_date:
-        delete_csv_files_after_process()
-    logging.info("PND MTR process finished.")
+        if not start_date and not end_date:
+            delete_csv_files_after_process()
+        logging.info("PND MTR process finished.")
+    except Exception as e:
+        notify_error(f"[PND MTR] Error inesperado en la ejecucion: {e}")

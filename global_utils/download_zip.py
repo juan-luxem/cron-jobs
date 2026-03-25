@@ -1,8 +1,10 @@
+import logging
 import os
 import zipfile
+
 from requests import Response
-from global_utils.send_telegram_message import send_telegram_message
-import logging
+
+from global_utils.notify_error import notify_error
 
 # --- Logger Setup ---
 # This sets up a simple logger to print info and error messages to the console.
@@ -13,7 +15,7 @@ logging.basicConfig(
 
 def download_zip(content_disposition: str, download_folder: str, response: Response):
     if "attachment" in content_disposition and ".zip" in content_disposition:
-        print(content_disposition)
+        logging.info(f"Content-Disposition: {content_disposition}")
         download_file = os.path.join(download_folder, content_disposition)
 
         try:
@@ -28,9 +30,7 @@ def download_zip(content_disposition: str, download_folder: str, response: Respo
             logging.info(f"Contenido extraído exitosamente de '{content_disposition}'")
 
         except (IOError, OSError) as e:
-            error_msg = f"Error al guardar el archivo ZIP '{content_disposition}': {e}"
-            logging.error(error_msg)
-            send_telegram_message(message=error_msg)
+            notify_error(f"Error al guardar el archivo ZIP '{content_disposition}': {e}")
             if os.path.exists(download_file):
                 try:
                     os.remove(download_file)
@@ -38,9 +38,7 @@ def download_zip(content_disposition: str, download_folder: str, response: Respo
                     pass
             return
         except zipfile.BadZipFile as e:
-            error_msg = f"Archivo ZIP corrupto '{content_disposition}': {e}"
-            logging.error(error_msg)
-            send_telegram_message(message=error_msg)
+            notify_error(f"Archivo ZIP corrupto '{content_disposition}': {e}")
             if os.path.exists(download_file):
                 try:
                     os.remove(download_file)
@@ -48,9 +46,7 @@ def download_zip(content_disposition: str, download_folder: str, response: Respo
                     pass
             return
         except Exception as e:
-            error_msg = f"Error inesperado al procesar ZIP '{content_disposition}': {e}"
-            logging.error(error_msg)
-            send_telegram_message(message=error_msg)
+            notify_error(f"Error inesperado al procesar ZIP '{content_disposition}': {e}")
             if os.path.exists(download_file):
                 try:
                     os.remove(download_file)
@@ -68,9 +64,8 @@ def download_zip(content_disposition: str, download_folder: str, response: Respo
                 except OSError as e:
                     logging.warning(f"No se pudo eliminar '{download_file}': {e}")
     else:
-        error_msg = f"Advertencia: La respuesta no parece ser un archivo ZIP. Content-Disposition: {content_disposition}"
-        logging.warning(error_msg)
-        send_telegram_message(message=error_msg)
-        logging.info(f"Content-Disposition: {content_disposition}")
-        # Podrías querer inspeccionar los primeros bytes para confirmar que es un ZIP
-        logging.info(f"Primeros bytes: {response.content[:20]}")
+        notify_error(
+            f"La respuesta no parece ser un archivo ZIP. "
+            f"Content-Disposition: '{content_disposition}'. "
+            f"Primeros bytes: {response.content[:20]}"
+        )

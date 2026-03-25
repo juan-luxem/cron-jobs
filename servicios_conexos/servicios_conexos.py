@@ -1,4 +1,7 @@
+import logging
+
 from global_utils.delete_csv_files_after_process import delete_csv_files_after_process
+from global_utils.notify_error import notify_error
 from servicios_conexos.download_servicios_conexos_files import (
     download_servicios_conexos_files,
 )
@@ -18,19 +21,26 @@ def get_servicios_conexos_mda(**kwargs):
     end_date = kwargs.get("end_date")
     sistema = kwargs.get("sistema")
 
-    download_servicios_conexos_files(
-        "MDA", start_date=start_date, end_date=end_date, sistema=sistema
-    )
-    print("Downloaded Servicios Conexos MDA files")
+    if bool(start_date) != bool(end_date):
+        notify_error(
+            f"[Servicios Conexos MDA] Error de validacion: start_date y end_date deben proporcionarse juntos. "
+            f"Recibido: start_date={start_date!r}, end_date={end_date!r}"
+        )
+        return
 
     try:
-        process_servicios_conexos_data("MDA", start_date=start_date, end_date=end_date)
-    except TypeError:
-        process_servicios_conexos_data("MDA")
+        download_servicios_conexos_files(
+            "MDA", start_date=start_date, end_date=end_date, sistema=sistema
+        )
+        logging.info("Downloaded Servicios Conexos MDA files")
 
-    if not start_date and not end_date:
-        delete_csv_files_after_process()
-    print("Servicios Conexos MDA process finished.")
+        process_servicios_conexos_data("MDA", start_date=start_date, end_date=end_date)
+
+        if not start_date and not end_date:
+            delete_csv_files_after_process()
+        logging.info("Servicios Conexos MDA process finished.")
+    except Exception as e:
+        notify_error(f"[Servicios Conexos MDA] Error inesperado en la ejecucion: {e}")
 
 
 def get_servicios_conexos_mtr(**kwargs):
@@ -46,16 +56,23 @@ def get_servicios_conexos_mtr(**kwargs):
     end_date = kwargs.get("end_date")
     sistema = kwargs.get("sistema")
 
-    download_servicios_conexos_files(
-        "MTR", start_date=start_date, end_date=end_date, sistema=sistema
-    )
-    print("Downloaded Servicios Conexos MTR files")
+    if bool(start_date) != bool(end_date):
+        notify_error(
+            f"[Servicios Conexos MTR] Error de validacion: start_date y end_date deben proporcionarse juntos. "
+            f"Recibido: start_date={start_date!r}, end_date={end_date!r}"
+        )
+        return
 
     try:
-        process_servicios_conexos_data("MTR", start_date=start_date, end_date=end_date)
-    except TypeError:
-        process_servicios_conexos_data("MTR")
+        download_servicios_conexos_files(
+            "MTR", start_date=start_date, end_date=end_date, sistema=sistema
+        )
+        logging.info("Downloaded Servicios Conexos MTR files")
 
-    if not start_date and not end_date:
-        delete_csv_files_after_process()
-    print("Servicios Conexos MTR process finished.")
+        process_servicios_conexos_data("MTR", start_date=start_date, end_date=end_date)
+
+        if not start_date and not end_date:
+            delete_csv_files_after_process()
+        logging.info("Servicios Conexos MTR process finished.")
+    except Exception as e:
+        notify_error(f"[Servicios Conexos MTR] Error inesperado en la ejecucion: {e}")

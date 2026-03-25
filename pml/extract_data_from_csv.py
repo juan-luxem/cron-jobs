@@ -55,11 +55,11 @@ def process_csv_file(file_path: str) -> List[Dict]:
     fecha_operacion = extract_fecha_operacion_from_filename(filename)
 
     if not sistema:
-        logging.error(f"Could not extract Sistema from filename: {filename}")
+        notify_error(f"[PML] No se pudo extraer el Sistema del nombre del archivo: '{filename}'")
         return []
 
     if not fecha_operacion:
-        logging.error(f"Could not extract FechaOperacion from filename: {filename}")
+        notify_error(f"[PML] No se pudo extraer la FechaOperacion del nombre del archivo: '{filename}'")
         return []
 
     logging.info(f"Processing file: {filename}")
@@ -76,8 +76,11 @@ def process_csv_file(file_path: str) -> List[Dict]:
             with open(file_path, "r", encoding="latin-1") as f:
                 content = f.read()
         except Exception as e:
-            logging.error(f"Error reading file {filename}: {e}")
+            notify_error(f"[PML] Error al leer el archivo '{filename}' con encoding latin-1: {e}")
             return []
+    except Exception as e:
+        notify_error(f"[PML] Error inesperado al abrir el archivo '{filename}': {e}")
+        return []
 
     # Split into lines
     lines = content.split("\n")
@@ -92,7 +95,7 @@ def process_csv_file(file_path: str) -> List[Dict]:
     logging.info(f"Header line index: {header_line_idx}")
 
     if header_line_idx == -1:
-        logging.warning(f"Could not find header line in file: {filename}")
+        notify_error(f"[PML] No se encontro la linea de encabezado en el archivo: '{filename}'")
         return []
 
     # Create a temporary file with only the data part (headers + data rows)
@@ -103,7 +106,7 @@ def process_csv_file(file_path: str) -> List[Dict]:
     try:
         df = pd.read_csv(StringIO(temp_csv_content), encoding="utf-8")
     except Exception as e:
-        logging.error(f"Error parsing CSV data from {filename}: {e}")
+        notify_error(f"[PML] Error al parsear CSV '{filename}': {e}")
         return []
 
     # Clean column names

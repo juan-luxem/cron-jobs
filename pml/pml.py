@@ -26,14 +26,17 @@ def get_pml_mda(**kwargs):
         )
         return
 
-    download_pml_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
-    logging.info("Downloaded PML MDA files")
+    try:
+        download_pml_files("MDA", start_date=start_date, end_date=end_date, sistema=sistema)
+        logging.info("Downloaded PML MDA files")
 
-    process_pml_data("MDA", start_date=start_date, end_date=end_date)
+        process_pml_data("MDA", start_date=start_date, end_date=end_date)
 
-    if not start_date and not end_date:
-        delete_csv_files_after_process()
-    logging.info("PML MDA process finished.")
+        if not start_date and not end_date:
+            delete_csv_files_after_process()
+        logging.info("PML MDA process finished.")
+    except Exception as e:
+        notify_error(f"[PML MDA] Error inesperado en la ejecucion: {e}")
 
 
 def get_pml_mtr(**kwargs):
@@ -56,11 +59,14 @@ def get_pml_mtr(**kwargs):
         )
         return
 
-    download_pml_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
-    logging.info("Downloaded PML MTR files")
+    try:
+        download_pml_files("MTR", start_date=start_date, end_date=end_date, sistema=sistema)
+        logging.info("Downloaded PML MTR files")
 
-    process_pml_data("MTR", start_date=start_date, end_date=end_date)
+        process_pml_data("MTR", start_date=start_date, end_date=end_date)
 
-    if not start_date and not end_date:
-        delete_csv_files_after_process()
-    logging.info("PML MTR process finished.")
+        if not start_date and not end_date:
+            delete_csv_files_after_process()
+        logging.info("PML MTR process finished.")
+    except Exception as e:
+        notify_error(f"[PML MTR] Error inesperado en la ejecucion: {e}")
