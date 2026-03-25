@@ -16,7 +16,8 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-downloads/
+download_folder/
+download_folder_range/
 eggs/
 .eggs/
 lib/
@@ -177,4 +178,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
