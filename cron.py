@@ -35,9 +35,15 @@ app = Flask(__name__)
 
 # --- MAP for API Triggers ---
 MODULE_MAP = {
+    # Nuevos creados
+    "pml": pml,
+    "pnd": pnd,
+    "servicios_conexos": servicios_conexos,
+    "servicios_conexos_por_zona_reserva": servicios_conexos_por_zona_reserva,
     "asignacion_por_participante_mercado": asignacion_por_participante_mercado,
     "cantidades_asignadas_servicios_conexos": cantidades_asignadas_servicios_conexos,
     "capacidad_transferencia": capacidad_transferencia,
+    # Por crear
     # "demanda": demanda,
     "demanda_real_balance": demanda_real_balance,
     "generacion_gi_ofertada": generacion_gi_ofertada,
@@ -46,13 +52,9 @@ MODULE_MAP = {
     "generacion_ndso_ofertada": generacion_ndso_ofertada,
     "generacion_ofertada": generacion_ofertada,
     "ngi": ngi,
-    "pml": pml,
-    "pnd": pnd,
     "rea": rea,
     "run_salidas_adelanto": run_salidas_adelanto,
     "run_salidas_ocurridas": run_salidas_ocurridas,
-    "servicios_conexos": servicios_conexos,
-    "servicios_conexos_por_zona_reserva": servicios_conexos_por_zona_reserva,
 }
 
 # --- Scheduler Setup ---
@@ -104,8 +106,8 @@ def start_scheduler():
         pml.get_pml_mda,
         "cron",
         day_of_week="*",
-        hour="11",
-        minute="47",
+        hour="5",
+        minute="50",
     )
 
     # PML MTR - 05:55 AM
@@ -137,7 +139,7 @@ def start_scheduler():
 
     # Servicios Conexos MDA - 06:10 AM
     scheduler.add_job(
-        servicios_conexos.get_servicios_mda,
+        servicios_conexos.get_servicios_conexos_mda,
         "cron",
         day_of_week="*",
         hour="6",
@@ -146,7 +148,7 @@ def start_scheduler():
 
     # Servicios Conexos MTR - 06:15 AM
     scheduler.add_job(
-        servicios_conexos.get_servicios_mtr,
+        servicios_conexos.get_servicios_conexos_mtr,
         "cron",
         day_of_week="*",
         hour="6",
@@ -262,7 +264,7 @@ def start_scheduler():
 
     # Cantidades Asignadas Servicios Conexos MDA - 8:04 PM
     scheduler.add_job(
-        cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mda,
+        cantidades_asignadas_servicios_conexos.get_cantidades_asignadas_servicios_conexos_mda,
         "cron",
         day_of_week="*",
         hour="20",
@@ -271,7 +273,7 @@ def start_scheduler():
 
     # Cantidades Asignadas Servicios Conexos MTR - 8:07 PM
     scheduler.add_job(
-        cantidades_asignadas_servicios_conexos.cantidades_asignadas_servicios_conexos_mtr,
+        cantidades_asignadas_servicios_conexos.get_cantidades_asignadas_servicios_conexos_mtr,
         "cron",
         day_of_week="*",
         hour="20",
@@ -280,7 +282,7 @@ def start_scheduler():
 
     # Asignación por Participante de Mercado - 10:05 PM
     scheduler.add_job(
-        asignacion_por_participante_mercado.get_asignacion_por_participante_mercado,
+        asignacion_por_participante_mercado.get_asignacion_por_participante_mercado_mda,
         "cron",
         day_of_week="*",
         hour="22",
@@ -289,7 +291,7 @@ def start_scheduler():
 
     # Servicios Conexos por Zona de Reserva - 10:08 PM
     scheduler.add_job(
-        servicios_conexos_por_zona_reserva.run_servicios_conexos_por_zona_reserva,
+        servicios_conexos_por_zona_reserva.get_servicios_conexos_por_zona_reserva_mda,
         "cron",
         day_of_week="*",
         hour="22",
@@ -311,7 +313,7 @@ def parse_date(date_str):
     try:
         return datetime.strptime(date_str, "%Y-%m-%d")
     except ValueError:
-        raise ValueError(f"Incorrect data format, should be YYYY-MM-DD")
+        raise ValueError("Incorrect data format, should be YYYY-MM-DD")
 
 
 # --- API Endpoints ---
